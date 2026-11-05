@@ -90,7 +90,7 @@ describe("aiStore", () => {
 
     it("should auto-set default model when switching providers", async () => {
       await useAIStore.getState().updateProvider("anthropic");
-      expect(useAIStore.getState().model).toBe("claude-sonnet-4-20250514");
+      expect(useAIStore.getState().model).toBe("claude-sonnet-5-5");
     });
 
     it("should update model", async () => {

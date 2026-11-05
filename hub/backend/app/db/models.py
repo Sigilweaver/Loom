@@ -15,6 +15,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -229,9 +230,21 @@ class Execution(Base):
     completed_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    # Refreshed by the runner while it waits on the Server; used to detect
-    # runs orphaned by a Hub restart.
+    # Lease. A dispatcher claims a queued row by setting claim_token (a fresh
+    # fencing token per claim) and keeps heartbeat_at fresh while it owns the
+    # run; every later write by that runner is conditional on the token. See
+    # docs/developer/architecture/hub-execution.md.
     heartbeat_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    claim_token: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
+    claimed_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0, server_default="0")
+    # The cron occurrence a scheduled run was created for; unique per schedule
+    # so an occurrence produces at most one execution.
+    scheduled_for: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 
@@ -245,6 +258,22 @@ class Execution(Base):
     server: Mapped["Server"] = relationship("Server", back_populates="executions")
     schedule: Mapped[Optional["Schedule"]] = relationship(
         "Schedule", back_populates="executions"
+    )
+
+    __table_args__ = (
+        Index(
+            "uq_executions_schedule_occurrence",
+            "schedule_id",
+            "scheduled_for",
+            unique=True,
+            postgresql_where=text("scheduled_for IS NOT NULL"),
+        ),
+        Index(
+            "ix_executions_active",
+            "status",
+            "queued_at",
+            postgresql_where=text("status IN ('queued', 'running')"),
+        ),
     )
 
 

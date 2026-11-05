@@ -66,7 +66,7 @@ export function replaceWorkflowFile(
 
 export function updateWorkflowMetadata(
   id: string,
-  data: { folder_path?: string; tags?: string[] }
+  data: Schemas["WorkflowUpdateMetadataRequest"]
 ): Promise<WorkflowMetadata> {
   return request(`/workflows/${id}`, { method: "PATCH", json: data });
 }

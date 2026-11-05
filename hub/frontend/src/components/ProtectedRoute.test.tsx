@@ -5,7 +5,7 @@ import { useAuthStore, type UserRole } from "@state/authStore";
 import { ProtectedRoute, RoleBasedRedirect, UserRoute } from "./ProtectedRoute";
 
 function signIn(role: UserRole) {
-  useAuthStore.getState().setAuth("tok", { id: "1", username: "u", role });
+  useAuthStore.getState().setAuth({ id: "1", username: "u", role });
 }
 
 function renderAt(path: string) {

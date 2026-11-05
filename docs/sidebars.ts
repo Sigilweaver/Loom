@@ -143,6 +143,7 @@ const sidebars: SidebarsConfig = {
             'developer/architecture/frontend',
             'developer/architecture/backend',
             'developer/architecture/hub',
+            'developer/architecture/hub-execution',
             'developer/architecture/caching',
             'developer/architecture/decisions',
           ],

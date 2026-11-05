@@ -6,9 +6,10 @@
  */
 
 import { createLanguageModel } from './providers';
-import { buildWorkflowSystemPrompt } from './prompts/system';
+import { buildWorkflowSystemPromptParts } from './prompts/system';
 import { buildExpressionPrompt, buildBasicFilterPrompt, buildBasicFormulaPrompt } from './prompts/expression';
 import { runAudit } from './audit';
+import { classifyError } from './errors';
 import { useAIStore, type ChatMessage, type TokenUsage, type MessageSegment } from '@state/aiStore';
 import { useWorkflowStore } from '@state/workflowStore';
 import { useHistoryStore } from '@state/historyStore';
@@ -136,12 +137,12 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
   }
 
   if (!store.apiKey && store.provider !== 'openai-compatible') {
-    store.setError('No API key configured. Add one in Settings → AI.');
+    store.setError('No API key configured. Add one in Settings -> AI.');
     return;
   }
 
   if (!store.model) {
-    store.setError('No model selected. Choose one in Settings → AI.');
+    store.setError('No model selected. Choose one in Settings -> AI.');
     return;
   }
 
@@ -177,7 +178,7 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
 
     // Build system prompt with current canvas context
     const { tools, wires, workflowMeta } = useWorkflowStore.getState();
-    const systemPrompt = buildWorkflowSystemPrompt(tools, wires, workflowMeta, {
+    const systemPrompt = buildWorkflowSystemPromptParts(tools, wires, workflowMeta, {
       auditEnabled: store.useAudit,
     });
 
@@ -194,21 +195,25 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
     // changes nothing leaves history alone.
     beginAgentTurn();
 
-    // Run the agent loop with streaming
-    // System prompt is passed as a message (not the `system` param) so we can
-    // attach Anthropic cacheControl. Other providers ignore providerOptions.
+    // Run the agent loop with streaming. The system prompt is passed as
+    // system messages (not a string) so we can attach Anthropic
+    // cacheControl. Other providers ignore providerOptions.
     const result = streamText({
       model,
-      messages: [
+      // AI SDK 7 rejects system messages inside `messages`; they go in
+      // `instructions`. The stable part carries the cache breakpoint; the
+      // canvas state that changes every edit follows it, uncached.
+      instructions: [
         {
           role: 'system' as const,
-          content: systemPrompt,
+          content: systemPrompt.stable,
           providerOptions: {
             anthropic: { cacheControl: { type: 'ephemeral' } },
           },
         },
-        ...messages,
+        { role: 'system' as const, content: systemPrompt.dynamic },
       ],
+      messages,
       tools: AGENT_TOOLS,
       stopWhen: stepCountIs(store.maxIterations),
       abortSignal: abortController.signal,
@@ -315,8 +320,7 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
     if ((err as Error).name === 'AbortError') {
       store.setError('Generation cancelled.');
     } else {
-      const message = err instanceof Error ? err.message : String(err);
-      const classified = classifyError(message);
+      const classified = classifyError(err);
       store.setError(`Agent error: ${classified.displayMessage}`);
 
       // Add error as assistant message so user sees it in chat
@@ -362,69 +366,7 @@ export async function sendAgentMessage(userPrompt?: string): Promise<void> {
 // Error classification
 // ---------------------------------------------------------------------------
 
-interface ClassifiedError {
-  category: 'auth' | 'rate-limit' | 'network' | 'overloaded' | 'unknown';
-  displayMessage: string;
-  retryable: boolean;
-}
-
-/**
- * Classify an error message into a user-friendly category.
- * Helps users understand whether to fix config, wait, or retry.
- */
-export function classifyError(message: string): ClassifiedError {
-  const lower = message.toLowerCase();
-
-  // Authentication / authorization errors
-  if (lower.includes('401') || lower.includes('403') || lower.includes('invalid api key')
-    || lower.includes('unauthorized') || lower.includes('authentication')
-    || lower.includes('permission denied')) {
-    return {
-      category: 'auth',
-      displayMessage: 'Authentication failed - check your API key in Settings → AI.',
-      retryable: false,
-    };
-  }
-
-  // Rate limiting
-  if (lower.includes('429') || lower.includes('rate limit') || lower.includes('too many requests')
-    || lower.includes('quota exceeded')) {
-    return {
-      category: 'rate-limit',
-      displayMessage: 'Rate limited by provider - wait a moment and try again.',
-      retryable: true,
-    };
-  }
-
-  // Provider overloaded
-  if (lower.includes('503') || lower.includes('overloaded') || lower.includes('capacity')
-    || lower.includes('temporarily unavailable')) {
-    return {
-      category: 'overloaded',
-      displayMessage: 'Provider temporarily overloaded - try again in a few seconds.',
-      retryable: true,
-    };
-  }
-
-  // Network / connection errors
-  if (lower.includes('502') || lower.includes('504') || lower.includes('could not connect')
-    || lower.includes('econnrefused') || lower.includes('enotfound')
-    || lower.includes('network') || lower.includes('timeout')
-    || lower.includes('fetch failed') || lower.includes('econnreset')) {
-    return {
-      category: 'network',
-      displayMessage: `Connection error: ${message}. Is the Sigilweaver Loom Server running?`,
-      retryable: true,
-    };
-  }
-
-  // Unknown
-  return {
-    category: 'unknown',
-    displayMessage: message,
-    retryable: false,
-  };
-}
+export { classifyError };
 
 /**
  * Generate a Polars expression using AI.
@@ -464,7 +406,7 @@ export async function generateExpression(
     const expression = result.text?.trim() ?? '';
     return { expression };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : String(err) };
+    return { error: classifyError(err).displayMessage };
   }
 }
 
@@ -538,7 +480,7 @@ export async function generateBasicFilter(
 
     return { result: validated.data as BasicFilterResult };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : String(err) };
+    return { error: classifyError(err).displayMessage };
   }
 }
 
@@ -604,7 +546,7 @@ export async function generateBasicFormula(
 
     return { result: validated.data as BasicFormulaOperation[] };
   } catch (err) {
-    return { error: err instanceof Error ? err.message : String(err) };
+    return { error: classifyError(err).displayMessage };
   }
 }
 

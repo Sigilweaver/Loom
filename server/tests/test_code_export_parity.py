@@ -32,6 +32,7 @@ _SOCKETS: dict[str, tuple[list[str], list[str]]] = {
     "Output": (["input"], []),
     "Filter": (["input"], ["output-true", "output-false"]),
     "Sort": (["input"], ["output"]),
+    "Sample": (["input"], ["output"]),
     "Summarize": (["input"], ["output"]),
     "Union": (["input"], ["output"]),
     "Unique": (["input"], ["output-unique", "output-duplicate"]),
@@ -179,3 +180,41 @@ async def test_unique_union_join_export_matches_engine(tmp_path: Path):
         _wire("un", "output", "out_u"),
     ]
     await _run_both(_workflow(tools, wires), tmp_path, ["union.csv"])
+
+
+@pytest.mark.asyncio
+async def test_every_aggregation_export_matches_engine(tmp_path: Path):
+    """Cabin and Age contain nulls, so null handling is compared too."""
+    ops = [
+        ("Age", "Sum"), ("Age", "Mean"), ("Age", "Median"), ("Age", "Min"), ("Age", "Max"),
+        ("Age", "Std"), ("Age", "Var"), ("Age", "Count"), ("Cabin", "CountDistinct"),
+        ("Cabin", "First"), ("Cabin", "Last"), ("Cabin", "Concat"),
+    ]
+    tools = [
+        _csv_input("in1"),
+        _tool(
+            "sum",
+            "Summarize",
+            {
+                "groupByColumns": ["Pclass"],
+                "aggregations": [
+                    {"column": col, "operation": op, "outputName": f"{col}_{op}"}
+                    for col, op in ops
+                ],
+            },
+        ),
+        _csv_output("out_main", tmp_path / "aggs.csv"),
+    ]
+    wires = [_wire("in1", "output", "sum"), _wire("sum", "output", "out_main")]
+    await _run_both(_workflow(tools, wires), tmp_path, ["aggs.csv"])
+
+
+@pytest.mark.asyncio
+async def test_first_percent_export_matches_engine(tmp_path: Path):
+    tools = [
+        _csv_input("in1"),
+        _tool("smp", "Sample", {"mode": "FirstPercent", "percent": 12.5}),
+        _csv_output("out_s", tmp_path / "sample.csv"),
+    ]
+    wires = [_wire("in1", "output", "smp"), _wire("smp", "output", "out_s")]
+    await _run_both(_workflow(tools, wires), tmp_path, ["sample.csv"])

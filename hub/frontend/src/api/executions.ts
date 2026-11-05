@@ -29,10 +29,7 @@ export function listExecutions(params?: {
   });
 }
 
-export function triggerExecution(data: {
-  workflow_id: string;
-  server_id?: string;
-}): Promise<ExecutionResponse> {
+export function triggerExecution(data: Schemas["ExecutionTrigger"]): Promise<ExecutionResponse> {
   return request("/executions", { method: "POST", json: data });
 }
 
@@ -69,8 +66,8 @@ export function parseSseFrame(
 /**
  * Subscribe to the live execution event stream (Server-Sent Events).
  *
- * Uses fetch + ReadableStream rather than the browser EventSource API because
- * the Hub authenticates via a Bearer header, which EventSource cannot set.
+ * Uses fetch + ReadableStream rather than the browser EventSource API so that
+ * a rejected session (HTTP 401) can be told apart from a dropped connection.
  * Returns a function that cancels the subscription.
  */
 export function streamExecutions(handlers: ExecutionStreamHandlers): () => void {
@@ -80,6 +77,7 @@ export function streamExecutions(handlers: ExecutionStreamHandlers): () => void 
     try {
       const response = await fetch(`${API_BASE}/executions/stream`, {
         headers: authHeaders(),
+        credentials: "same-origin",
         signal: controller.signal,
       });
       if (!response.ok || !response.body) {
@@ -106,8 +104,9 @@ export function streamExecutions(handlers: ExecutionStreamHandlers): () => void 
           if (parsed?.event === "update" && parsed.data) {
             try {
               handlers.onUpdate(JSON.parse(parsed.data) as ExecutionResponse);
-            } catch {
-              // Ignore malformed frames.
+            } catch (error) {
+              // One bad frame should not end the stream; report it and carry on.
+              console.warn("Ignoring malformed execution stream frame:", error);
             }
           }
           boundary = buffer.indexOf("\n\n");

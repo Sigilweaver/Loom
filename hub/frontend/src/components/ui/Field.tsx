@@ -17,9 +17,23 @@ export function fieldSurface(invalid?: boolean): string {
   );
 }
 
-/** Class names shared by every text-like form control. */
+/** True when `className` sets a width at the base breakpoint (e.g. `w-auto`, `w-40`). */
+function setsBaseWidth(className?: string): boolean {
+  return (className ?? "").split(/\s+/).some((name) => /^w-/.test(name));
+}
+
+/**
+ * Class names shared by every text-like form control. Controls fill their
+ * container unless `className` gives a base width of its own; both utilities
+ * would otherwise apply and the stylesheet order, not the caller, would win.
+ */
 export function controlClasses(invalid?: boolean, className?: string): string {
-  return clsx(fieldSurface(invalid), "w-full px-3 text-sm placeholder:text-ink-faint", className);
+  return clsx(
+    fieldSurface(invalid),
+    !setsBaseWidth(className) && "w-full",
+    "px-3 text-sm placeholder:text-ink-faint",
+    className
+  );
 }
 
 export interface InputProps extends ComponentPropsWithRef<"input"> {

@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, RequireAuditor, RequireUser
+from app.api.v1.routes.executions import require_own_workflow
 from app.db.database import get_db
 from app.domain.auth.roles import Role, get_role_level
 from app.domain.auth.sessions import SessionInfo
@@ -19,6 +20,16 @@ from app.domain.executions import (
     ExecutionService,
     TriggerExecutionInput,
     TriggerType,
+)
+from app.domain.executions.service import (
+    ExecutionServiceError,
+    NoAvailableServerError,
+)
+from app.domain.executions.service import (
+    ServerNotFoundError as ExecutionServerNotFoundError,
+)
+from app.domain.executions.service import (
+    WorkflowNotFoundError as ExecutionWorkflowNotFoundError,
 )
 from app.domain.schedules import (
     CreateScheduleInput,
@@ -188,7 +199,7 @@ async def list_schedules(
 
     schedules, total = await service.list_schedules(
         workflow_id=workflow_id,
-        enabled_only=enabled if enabled else False,
+        enabled=enabled,
         created_by=filter_by,
         skip=offset,
         limit=limit,
@@ -211,6 +222,7 @@ async def create_schedule(
     The schedule will be registered with the scheduler and will start
     triggering executions according to the cron expression.
     """
+    await require_own_workflow(db, request.workflow_id, user.username)
     service = ScheduleService(db)
 
     try:
@@ -397,6 +409,7 @@ async def trigger_schedule(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot trigger schedules created by other users",
         )
+    await require_own_workflow(db, schedule.workflow_id, user.username)
 
     try:
         input = TriggerExecutionInput(
@@ -409,10 +422,11 @@ async def trigger_schedule(
             trigger_type=TriggerType.MANUAL,
             schedule_id=schedule_id,
         )
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to trigger execution: {e}",
-        )
+    except NoAvailableServerError as e:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
+    except (ExecutionWorkflowNotFoundError, ExecutionServerNotFoundError) as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except ExecutionServiceError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
     return _execution_to_response(execution)

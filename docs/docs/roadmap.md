@@ -56,8 +56,7 @@ These are directions, roughly grouped. They are not ordered and not scheduled.
 
 Hub is in open beta. The gaps that matter most:
 
-- Durable execution runners. Records survive in PostgreSQL and stale runs are marked failed after restart, but Hub does not resume or retry the Server request.
-- Supported multi-replica deployment. Schedule dispatch already uses transactional database claims; live execution events still need a shared broker, and the default in-memory token store must be replaced.
+- Supported multi-replica deployment. Executions and schedules are already queued and claimed through PostgreSQL; live execution events still need a shared broker, and the default in-memory token store must be replaced.
 - A working Settings page in the admin area (it is a placeholder today)
 - Per-user API tokens for automation
 - OIDC and single sign-on

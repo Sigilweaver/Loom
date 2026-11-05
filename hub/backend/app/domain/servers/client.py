@@ -66,9 +66,12 @@ class ServerClient:
 
                 if response.status_code == 200:
                     data = response.json()
+                    if not isinstance(data, dict):
+                        return ServerError(message="Health response is not a JSON object")
+                    version = data.get("version")
                     return HealthResponse(
-                        status=data.get("status", "ok"),
-                        version=data.get("version"),
+                        status=str(data.get("status", "ok")),
+                        version=str(version) if version is not None else None,
                     )
                 else:
                     return ServerError(
@@ -84,9 +87,9 @@ class ServerClient:
             logger.debug("Timeout connecting to %s", self.endpoint_url)
             return ServerError(message="Connection timeout")
 
-        except (httpx.HTTPError, ValueError) as e:
+        except (httpx.HTTPError, httpx.InvalidURL, ValueError) as e:
             logger.warning("Unexpected error polling %s: %s", self.endpoint_url, e)
-            return ServerError(message=str(e))
+            return ServerError(message=str(e) or type(e).__name__)
 
     async def execute(self, workflow_content: bytes) -> dict[str, Any] | ServerError:
         """Execute a workflow on this server.
@@ -112,13 +115,19 @@ class ServerClient:
                 )
 
                 if response.status_code == 200:
-                    result: dict[str, Any] = response.json()
+                    result = response.json()
+                    if not isinstance(result, dict):
+                        return ServerError(message="Execution response is not a JSON object")
                     return result
                 else:
                     # Include response body for better error messages
                     try:
                         error_detail = response.json()
-                        detail_str = error_detail.get("detail", str(error_detail))
+                        detail_str = (
+                            str(error_detail.get("detail", error_detail))
+                            if isinstance(error_detail, dict)
+                            else str(error_detail)
+                        )
                     except ValueError:
                         detail_str = (
                             response.text[:500] if response.text else "No details"
@@ -135,9 +144,9 @@ class ServerClient:
         except httpx.TimeoutException:
             return ServerError(message="Execution timeout")
 
-        except (httpx.HTTPError, ValueError) as e:
+        except (httpx.HTTPError, httpx.InvalidURL, ValueError) as e:
             logger.error("Execution error on %s: %s", self.endpoint_url, e)
-            return ServerError(message=str(e))
+            return ServerError(message=str(e) or type(e).__name__)
 
     async def get_connections(self) -> list[dict[str, Any]] | ServerError:
         """Get available connections from the server.
@@ -161,5 +170,5 @@ class ServerClient:
                         status_code=response.status_code,
                     )
 
-        except (httpx.HTTPError, ValueError) as e:
-            return ServerError(message=str(e))
+        except (httpx.HTTPError, httpx.InvalidURL, ValueError) as e:
+            return ServerError(message=str(e) or type(e).__name__)

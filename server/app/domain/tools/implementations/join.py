@@ -22,7 +22,6 @@ class JoinToolConfig(BaseModel):
     leftKeys: list[str] = Field(default_factory=list)
     rightKeys: list[str] = Field(default_factory=list)
     joinType: Literal["inner", "left", "right", "outer"] = "inner"
-    leftSuffix: str = "_left"
     rightSuffix: str = "_right"
 
 
@@ -44,8 +43,8 @@ class JoinTool(BaseTool):
         joinType: 'inner' | 'left' | 'right' | 'outer'
         leftKeys: list of column names from left input
         rightKeys: list of column names from right input
-        leftSuffix: suffix for left columns on conflict (default: '_left')
-        rightSuffix: suffix for right columns on conflict (default: '_right')
+        rightSuffix: suffix for right columns whose names clash with the left
+            (default: '_right'); left columns keep their names
     """
 
     def is_blocking(self, config: dict[str, Any] | None = None) -> bool:
@@ -61,7 +60,6 @@ class JoinTool(BaseTool):
             "leftKeys": config.get("leftKeys", []),
             "rightKeys": config.get("rightKeys", []),
             "joinType": config.get("joinType", "inner"),
-            "leftSuffix": config.get("leftSuffix", "_left"),
             "rightSuffix": config.get("rightSuffix", "_right"),
         }
 

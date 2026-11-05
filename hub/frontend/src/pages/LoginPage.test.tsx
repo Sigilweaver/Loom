@@ -4,14 +4,21 @@ import userEvent from "@testing-library/user-event";
 import { useAuthStore } from "@state/authStore";
 import * as api from "@api";
 import { renderWithProviders } from "../test/render";
-import { LoginPage } from "./LoginPage";
+import { COOKIE_REJECTED_MESSAGE, LoginPage } from "./LoginPage";
 
 vi.mock("@api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@api")>()),
   getAuthStatus: vi.fn(),
   login: vi.fn(),
   register: vi.fn(),
+  readCsrfToken: vi.fn(),
 }));
+
+const cookieLogin = {
+  access_token: null,
+  token_type: "cookie",
+  user: { id: "1", username: "ada", role: "user", created_at: "2026-01-01T00:00:00Z" },
+};
 
 const status = (initialized: boolean) => ({
   initialized,
@@ -22,16 +29,14 @@ const status = (initialized: boolean) => ({
 beforeEach(() => {
   vi.resetAllMocks();
   useAuthStore.getState().clearAuth();
+  // The Hub set its session and CSRF cookies.
+  vi.mocked(api.readCsrfToken).mockReturnValue("csrf-abc");
 });
 
 describe("LoginPage", () => {
   it("signs in and stores the session", async () => {
     vi.mocked(api.getAuthStatus).mockResolvedValue(status(true));
-    vi.mocked(api.login).mockResolvedValue({
-      access_token: "tok",
-      token_type: "bearer",
-      user: { id: "1", username: "ada", role: "user", created_at: "2026-01-01T00:00:00Z" },
-    });
+    vi.mocked(api.login).mockResolvedValue(cookieLogin);
     renderWithProviders(<LoginPage />, { route: "/login" });
 
     await userEvent.type(await screen.findByLabelText("Username"), "ada");
@@ -41,6 +46,20 @@ describe("LoginPage", () => {
     await waitFor(() => expect(useAuthStore.getState().isAuthenticated).toBe(true));
     expect(api.login).toHaveBeenCalledWith({ username: "ada", password: "hunter2hunter2" });
     expect(useAuthStore.getState().user?.username).toBe("ada");
+  });
+
+  it("explains a rejected session cookie instead of pretending to be signed in", async () => {
+    vi.mocked(api.getAuthStatus).mockResolvedValue(status(true));
+    vi.mocked(api.login).mockResolvedValue(cookieLogin);
+    vi.mocked(api.readCsrfToken).mockReturnValue(null);
+    renderWithProviders(<LoginPage />, { route: "/login" });
+
+    await userEvent.type(await screen.findByLabelText("Username"), "ada");
+    await userEvent.type(screen.getByLabelText("Password"), "hunter2hunter2");
+    await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
+
+    expect(await screen.findByText(COOKIE_REJECTED_MESSAGE)).toBeInTheDocument();
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
   });
 
   it("shows the server's message when sign-in fails", async () => {

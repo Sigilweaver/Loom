@@ -5,22 +5,9 @@ import { request, requestVoid } from "./http";
 
 export type GrantGroupSummary = Schemas["GrantGroupSummary"];
 
-export interface GrantGroupConnection {
-  connection_id: string;
-  name: string;
-  type: string;
-  assigned_at: string;
-  assigned_by: string;
-}
+export type GrantGroupConnection = Schemas["ConnectionSummary"];
 
-export interface GrantGroupUserGroup {
-  user_group_id: string;
-  user_group_name: string;
-  description: string;
-  member_count: number;
-  assigned_at: string;
-  assigned_by: string;
-}
+export type GrantGroupUserGroup = Schemas["UserGroupSummary"];
 
 export type GrantGroupDetail = Schemas["GrantGroupDetail"];
 
@@ -30,10 +17,7 @@ export function listGrantGroups(): Promise<GrantGroupListResponse> {
   return request("/grant-groups");
 }
 
-export function createGrantGroup(data: {
-  name: string;
-  description?: string;
-}): Promise<GrantGroupSummary> {
+export function createGrantGroup(data: Schemas["GrantGroupCreate"]): Promise<GrantGroupSummary> {
   return request("/grant-groups", { method: "POST", json: data });
 }
 
@@ -43,7 +27,7 @@ export function getGrantGroup(id: string): Promise<GrantGroupDetail> {
 
 export function updateGrantGroup(
   id: string,
-  data: { name?: string; description?: string }
+  data: Schemas["GrantGroupUpdate"]
 ): Promise<GrantGroupSummary> {
   return request(`/grant-groups/${id}`, { method: "PATCH", json: data });
 }

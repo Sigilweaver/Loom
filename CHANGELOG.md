@@ -21,6 +21,7 @@ and documentation checked against the code.
 
 ### Changed
 
+- **AI assistant providers** - Default and suggested models are updated (Anthropic claude-sonnet-5-5, claude-opus-5-5, claude-haiku-5-5; OpenAI gpt-6.1-sol, gpt-6-astra, gpt-6-luna; Google gemini-3.8-flash, gemini-3.1-pro-preview, gemini-3.5-flash-lite). Provider errors are classified from the HTTP status, with distinct messages for a missing model and an oversized conversation. On Anthropic, only the stable instructions carry the prompt-cache breakpoint, so editing the canvas no longer invalidates the cache
 - **Hub connections page** - Rebuilt on the shared components: accessible add/edit dialog with per-field errors, confirmation before delete, toasts, and loading, empty and error states (#90)
 - **Hub API types** - Hub frontend wire types are generated from the backend OpenAPI schema (`bun run gen:api`) and CI fails when they drift (#76)
 - **Studio polish** - Notifications appear at the bottom right instead of covering the header buttons; the empty canvas shows a starting hint; favorite tools appear once, under Favorites
@@ -36,21 +37,42 @@ and documentation checked against the code.
 - **Hub frontend rebuilt** - API client split by resource with a typed `ApiError` (#91); shared component layer with per-theme status colors (#90); all pages rebuilt with loading, empty and error states
 - **Server execution** - One execution path for run, schema, metadata and profile, so all honour the timeout, execution mode and locking (#83); the domain layer no longer depends on the API layer (#82)
 - **Studio canvas** - Edges are derived at render time and follow the theme instead of being stored with the workflow (#88); Preview All keeps the UI responsive on large workflows (#67); only the wire that closes a loop is flagged invalid
+- **Hub connection testing** - The Test buttons and the health poller share one tester with a URL builder for every supported database type (PostgreSQL, MySQL, SQL Server, SQLite); the Test endpoints no longer block the Hub while a database answers (#63)
 - **Server Python version** - The Server supports Python 3.13 only: `requires-python`, mypy and ruff now target 3.13, matching `server/.python-version`, the Docker image and CI (#117)
 - **Server type checks** - The remaining unexplained `type: ignore` comments are replaced by typed code (join `how`, pivot aggregate, profiler statistics); a failed profiling metric and an audit log that cannot be deleted or summarised are now logged instead of passing silently (#115)
 - **Unknown tool config keys** - A config key the engine does not read is no longer dropped silently: Sort rejects it, Studio editor state (`_`-prefixed keys, Filter condition-builder keys, Summarize `actions`) is ignored, Input and Output forward it to the reader or writer, and any other unknown key is reported in the run response's `config_warnings` and the server log (#77)
 - **Clearer errors** - Server tool input/output errors say what to do; file-access failures return 400/403/404 instead of 500
 - **Documentation** - Roadmap rewritten around the path to v1.0; sidebar rebuilt as a reading path; deployment guide, configuration references, security model, Studio, connections, Hub and AI pages corrected against the code; developer guide updated for Bun and uv
 - **README and SECURITY.md** - Security support now covers the latest 0.x release until v1.0
+- **Durable Hub executions** - Executions are a queue in PostgreSQL that every Hub process claims from (`FOR UPDATE SKIP LOCKED`) and runs under a lease with a fencing token. Queued runs survive a restart; a run that never reached a Server is claimed again by another process (up to `EXECUTION_MAX_ATTEMPTS`), and one that may have reached it is marked interrupted, not retried. Shutdown releases preparing runs and gives running ones `EXECUTION_SHUTDOWN_GRACE_SECONDS`. Cancel is seen by the runner within 15 seconds. New settings `EXECUTION_MAX_CONCURRENT`, `EXECUTION_MAX_ATTEMPTS` and `EXECUTION_SHUTDOWN_GRACE_SECONDS`; migration `010_execution_leases` (#68)
+- **Scheduled occurrences run once** - A unique `(schedule_id, scheduled_for)` index allows one execution per cron occurrence across Hub processes; an occurrence that cannot start yet (no Server online) stays due and is logged once instead of every second (#69)
 
 ### Fixed
 
 - **Editing client connections** - Leaving the username blank when editing a connection keeps the stored username instead of clearing it
+- **AI assistant turns failed** - Every assistant turn failed with "System messages are not allowed in the prompt or messages fields" after the AI SDK 7 update; the system prompt is now sent as instructions
 - **Hub sign-in message** - A wrong username or password now says so instead of reporting an expired session
+- **Summarize on Polars 2** - The Concat aggregation failed on Polars 2 (`str.concat` was removed) and now uses `str.join`; Count Distinct no longer counts null as a value, matching Count and the documentation; output schemas are derived from Polars, so previews show the real result dtype (an Int8 Sum is Int64, a Float32 Mean stays Float32, a Date Mean is a Datetime)
+- **Union type mismatches** - Union widens numeric columns (Int32 + Int64, Int64 + Float64) but stops with an error naming the column for any other mismatch, instead of silently converting, for example, numbers to strings; the schema preview shows the widened type
+- **Sample First Percent** - 0% now returns no rows instead of one
+- **Join `leftSuffix`** - Removed from the Join config: it was accepted but never applied (left columns always keep their names)
+- **Schema dtypes** - Polars Enum columns are reported as Categorical and Array columns as List instead of Utf8
 - **Server operations (silent wrong data)** - Filter now sends rows whose predicate is null to the False output instead of dropping them from both outputs; Sort is stable; Summarize group-by, distinct and Join keep input row order; Union by name/position widens mismatched numeric types instead of failing; generated Python quotes column names safely
+- **Hub dashboard figures** - The success rate counts finished runs only and is hidden until a run has finished (it showed 100% with no runs). The 24-hour total shows the previous day's count instead of an unlabeled trend arrow, and is marked as a lower bound when more runs exist than the dashboard fetched. Stat cards sit two to a row on phones
+- **Hub form controls** - Controls given their own width (the schedule builder's selects) no longer stretch to full width
+- **Hub accessibility** - Faint secondary text meets WCAG AA contrast (4.5:1) on cards in all three themes (the light theme was 2.5:1); empty-state titles no longer pose as section headings and workflow cards use the next heading level; the sidebar and folder panes have distinct landmark names
 - **Duplicate scheduled runs** - PostgreSQL row locks coordinate persisted cron occurrences across competing dispatchers. The next occurrence advances atomically with execution insertion; replacement processes see overdue work and schedule edits without local re-registration. Missed intervals are coalesced into one attempt. Hub deployment remains single replica because live updates still use an in-memory broker (#69)
-- **Hub executions stuck as running** - Runs left queued or running when the Hub stopped are now marked failed ("interrupted") by a sweep at startup and every 60s, driven by a new per-run heartbeat. Cancellation and runner transitions re-read the execution under a row lock, so finished runs cannot be cancelled and terminal runs cannot be restarted. New setting `EXECUTION_STALE_SECONDS` (default 120); requires migration `009_execution_heartbeat` (#68, partial)
+- **Hub executions stuck as running** - A run left running when its Hub stops is marked failed ("interrupted") once its lease expires (`EXECUTION_STALE_SECONDS`, default 120); finished runs cannot be cancelled and terminal runs cannot be restarted. Requires migrations `009_execution_heartbeat` and `010_execution_leases` (#68)
 - **Hub audit log verification** - `/api/v1/audit/verify` reported every event as tampered because the hash was computed before the event id and timestamp were set. The hash now also covers auth method, client IP, user agent and server id, and concurrent writers are serialized with an advisory lock. Requires migration `008_audit_hash_version`; events written before the upgrade are reported as legacy (unverifiable), not tampered (#110)
+- **Hub workflow saves** - Replacing a workflow updates the database before the file, under a row lock, with an atomic file write; a failed save no longer leaves the stored file out of step with its checksum, and concurrent saves no longer collide on a revision number
+- **Hub workflow uploads** - Wrong field types and names over 255 characters return 400 instead of 500; names with non-Latin-1 characters download correctly
+- **Hub deletes** - Deleting a workflow or Server that schedules or execution history refer to returns 409 with the reason, instead of a 500 that had already removed the workflow file
+- **Hub health polling** - A Server with a malformed URL or health response no longer stops every Server's status from being saved; one failing connection no longer discards a whole connection health pass
+- **Hub API errors** - Schedule Run Now returns 503 when no Server is online; `?enabled=false` lists disabled schedules; a duplicate connection name created concurrently returns 409; long user agents no longer fail audited requests; two Servers can no longer share an auth token
+- **Hub authorize** - Connection credentials that cannot be decrypted now deny the request with a reason instead of authorizing it without credentials
+- **Hub live updates** - Execution streams no longer hold a database connection while open, and a per-execution stream re-reads the run every 15 seconds so it also ends for runs another Hub process owns
+- **Hub workflow ownership** - Users can start and schedule only workflows they uploaded, as the role model documents; another user's workflow returns 403
+- **Hub schema drift** - Migration `011_not_null_drift` makes PostgreSQL enforce the 15 NOT NULL columns the models declare (backfilled with their defaults); it stops without changes if `audit_events.details` or `execution_records.execution_id` hold NULLs. A test now fails if the migrated schema and the models differ
 - **Hub server registration** - Registering a server without a token overwrote another tokenless server's record
 - **Preview and inspection** - Preview All, socket previews, schema inspection and profiling skip Output writers; Run still writes configured outputs
 - **Workflow validation errors** - Invalid tool configuration, invalid graphs and empty workflows return HTTP 400
@@ -73,6 +95,10 @@ and documentation checked against the code.
 
 ### Security
 
+- **Hub web sessions in HttpOnly cookies** - The Hub web app no longer keeps its session token in `localStorage`. `POST /auth/login` (and first-run `POST /auth/register`) accept `session_mode: "cookie"`, which sets an `HttpOnly`, `Secure`, `SameSite=Strict` session cookie and returns no token; the app restores the session from `/auth/me` on load and removes the old `localStorage` entry. State-changing cookie requests must send an `X-CSRF-Token` header bound to the session, or get 403. Bearer tokens for Studio and scripts are unchanged. New setting `SESSION_COOKIE_SECURE` (default `true`) (#118)
+- **Hub sessions end on password changes** - Changing your password signs out your other sessions, and an administrator's password reset signs out all of that user's sessions
+- **Hub registration by an administrator** - `POST /auth/register` called by an admin creates the user without also creating a session for them; `access_token` is null
+- **Hub login timing** - A login for an unknown username takes as long as one with a wrong password, so response times do not reveal which usernames exist
 - **Hub capability authorization** - Browse requests enforce connection grants before resolving credentials, matching execute and preview. In-memory tokens expire at the deadline, matching PostgreSQL. HTTP regressions cover issuer failure, server identity, expiry, replay, grant revocation and credential scope (#110)
 - **Bounded data profiling** - Column statistics collect at most `MAX_PROFILE_ROWS` plus a truncation check, share the upstream request deadline and label sampled results. Sampled pivot counts are lower bounds; skipped Output placeholders use the same results lock (#83)
 - **JavaScript dependency audits** - Patch brace-expansion, Axios, Joi and Undici advisories; upgrade Electron to 41.10.6 for popup sandbox, protocol CORS and webview worker restrictions
@@ -92,6 +118,7 @@ and documentation checked against the code.
 
 ### Removed
 
+- **Hub Admin > Settings** - The placeholder page and its navigation entry; Hub is configured through environment variables
 - Completed B2-to-R2 migration scripts, `convert-tags.sh`, `generate-downloads-manifest.py`, `cleanup-r2-staging.py` and the orphaned `scripts/lint_repo.py` (#140)
 - Dead server modules and helpers; unused platform-layer APIs (`listByType`, `isDesktop`, `isBrowser`, `nativeMenus`, `backendManagement`) and the Tauri `list_connections_by_type` command
 - Unused Studio desktop-menu plumbing (`platform.menu`, `MenuOperations`) and a duplicated canvas style block
