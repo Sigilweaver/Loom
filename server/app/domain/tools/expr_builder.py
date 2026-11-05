@@ -695,8 +695,9 @@ def _check_union_dtypes(frames: list[pl.LazyFrame]) -> None:
 
     The relaxed concat modes widen to a common supertype. That is wanted for
     numbers (Int32 + Int64, Int64 + Float64) but would silently turn an Int64
-    column unioned with a String column into strings. Only numeric widening
-    (and all-null columns) is allowed; any other mismatch raises.
+    column unioned with a String column into strings. Numeric widening,
+    widening within one dtype family (Datetime units) and all-null columns are
+    allowed; any other mismatch raises.
     """
     seen: dict[str, pl.DataType] = {}
     for frame in frames:
@@ -707,6 +708,10 @@ def _check_union_dtypes(frames: list[pl.LazyFrame]) -> None:
                     seen[name] = dtype
                 continue
             if first.is_numeric() and dtype.is_numeric():
+                continue
+            if type(first) is type(dtype):
+                # Same family with different parameters (Datetime units or
+                # time zones, Decimal precision): the supertype keeps the values.
                 continue
             raise ToolError(
                 f"Union column '{name}' has incompatible types {first} and {dtype}. "

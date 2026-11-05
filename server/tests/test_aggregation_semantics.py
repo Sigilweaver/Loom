@@ -153,3 +153,12 @@ async def test_union_output_schema_matches_execution(mode: str):
         {"mode": mode}, {"input": [schema_from_polars(a), schema_from_polars(b)]}
     )
     assert [c.dtype for c in predicted["output"].columns] == [c.dtype for c in actual.columns]
+
+
+def test_union_widens_within_a_dtype_family():
+    from app.domain.tools.expr_builder import UnionOperation
+
+    a = pl.LazyFrame({"t": pl.Series([dt.datetime(2020, 1, 1)], dtype=pl.Datetime("us"))})
+    b = pl.LazyFrame({"t": pl.Series([dt.datetime(2020, 1, 2)], dtype=pl.Datetime("ns"))})
+    out = UnionOperation(mode="ByName").execute([a, b]).collect()
+    assert out["t"].to_list() == [dt.datetime(2020, 1, 1), dt.datetime(2020, 1, 2)]
