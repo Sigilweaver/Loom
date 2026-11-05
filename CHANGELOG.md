@@ -68,6 +68,7 @@ and documentation checked against the code.
 - **Hub API errors** - Schedule Run Now returns 503 when no Server is online; `?enabled=false` lists disabled schedules; a duplicate connection name created concurrently returns 409; long user agents no longer fail audited requests; two Servers can no longer share an auth token
 - **Hub authorize** - Connection credentials that cannot be decrypted now deny the request with a reason instead of authorizing it without credentials
 - **Hub live updates** - Execution streams no longer hold a database connection while open, and a per-execution stream re-reads the run every 15 seconds so it also ends for runs another Hub process owns
+- **Hub workflow ownership** - Users can start and schedule only workflows they uploaded, as the role model documents; another user's workflow returns 403
 - **Hub server registration** - Registering a server without a token overwrote another tokenless server's record
 - **Preview and inspection** - Preview All, socket previews, schema inspection and profiling skip Output writers; Run still writes configured outputs
 - **Workflow validation errors** - Invalid tool configuration, invalid graphs and empty workflows return HTTP 400

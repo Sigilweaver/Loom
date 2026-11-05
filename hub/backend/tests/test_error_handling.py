@@ -10,7 +10,7 @@ from sqlalchemy import update
 
 from app.api.v1.routes import executions as executions_routes
 from app.config import settings
-from app.db.models import Execution, Server
+from app.db.models import Execution, Server, Workflow
 from app.domain.audit.service import AuditService
 from app.domain.servers import health_poller as health_poller_module
 from app.domain.servers.client import HealthResponse, ServerClient, ServerError
@@ -97,6 +97,11 @@ class TestSchedules:
         workflow = await db_helpers.make_workflow(
             WorkflowFileStore(settings.workflow_storage_path)
         )
+        async with TestSessionLocal() as db:
+            await db.execute(
+                update(Workflow).where(Workflow.id == workflow.id).values(uploaded_by="testuser")
+            )
+            await db.commit()
         on = await db_helpers.make_schedule(workflow.id, created_by="testuser")
         off = await db_helpers.make_schedule(workflow.id, created_by="testuser", enabled=False)
         return on, off
@@ -172,3 +177,34 @@ class TestExecutionStream:
             await asyncio.wait_for(read_stream(), timeout=10)
             await finisher
         assert statuses == ["queued", "completed"]
+
+
+class TestWorkflowOwnership:
+    """roles.md: Users run and schedule only their own workflows."""
+
+    async def _foreign_workflow(self):
+        workflow = await db_helpers.make_workflow(
+            WorkflowFileStore(settings.workflow_storage_path)
+        )  # uploaded_by="test", not "testuser"
+        await db_helpers.make_server()
+        return workflow
+
+    async def test_cannot_run_another_users_workflow(self, user_headers):
+        workflow = await self._foreign_workflow()
+        async with new_client() as client:
+            response = await client.post(
+                "/api/v1/executions",
+                headers=user_headers,
+                json={"workflow_id": str(workflow.id)},
+            )
+        assert response.status_code == 403
+
+    async def test_cannot_schedule_another_users_workflow(self, user_headers):
+        workflow = await self._foreign_workflow()
+        async with new_client() as client:
+            response = await client.post(
+                "/api/v1/schedules",
+                headers=user_headers,
+                json={"workflow_id": str(workflow.id), "cron_expression": "0 * * * *"},
+            )
+        assert response.status_code == 403

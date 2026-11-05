@@ -18,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, RequireAuditor, RequireUser
 from app.db.database import get_db
-from app.db.models import ExecutionRecord
+from app.db.models import ExecutionRecord, Workflow
 from app.domain.artifacts import (
     ArtifactCorruptedError,
     ArtifactNotFoundError,
@@ -45,6 +45,21 @@ from app.domain.executions.schemas import (
 )
 
 router = APIRouter(prefix="/executions", tags=["executions"])
+
+
+async def require_own_workflow(db: AsyncSession, workflow_id: UUID, username: str) -> None:
+    """Users run and schedule only workflows they uploaded (see roles.md).
+
+    A missing workflow is left to the service, which reports 404.
+    """
+    uploaded_by = (
+        await db.execute(select(Workflow.uploaded_by).where(Workflow.id == workflow_id))
+    ).scalar_one_or_none()
+    if uploaded_by is not None and uploaded_by != username:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only run or schedule workflows you uploaded",
+        )
 
 # Execution statuses after which no further events will be emitted.
 _TERMINAL_STATUSES = frozenset({"completed", "failed", "cancelled"})
@@ -346,6 +361,7 @@ async def trigger_execution(
     Queues an execution and starts it asynchronously on the selected server.
     If no server_id is provided, an online server is selected automatically.
     """
+    await require_own_workflow(db, request.workflow_id, user.username)
     service = _get_service(db)
 
     try:

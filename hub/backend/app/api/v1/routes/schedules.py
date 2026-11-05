@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentUser, RequireAuditor, RequireUser
+from app.api.v1.routes.executions import require_own_workflow
 from app.db.database import get_db
 from app.domain.auth.roles import Role, get_role_level
 from app.domain.auth.sessions import SessionInfo
@@ -221,6 +222,7 @@ async def create_schedule(
     The schedule will be registered with the scheduler and will start
     triggering executions according to the cron expression.
     """
+    await require_own_workflow(db, request.workflow_id, user.username)
     service = ScheduleService(db)
 
     try:
@@ -407,6 +409,7 @@ async def trigger_schedule(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot trigger schedules created by other users",
         )
+    await require_own_workflow(db, schedule.workflow_id, user.username)
 
     try:
         input = TriggerExecutionInput(
