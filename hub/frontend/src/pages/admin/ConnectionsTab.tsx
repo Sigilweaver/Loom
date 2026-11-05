@@ -332,7 +332,7 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
           const createRequest: CreateDatabaseConnectionRequest = {
             type: "database",
             name,
-            description: description || undefined,
+            description,
             read_only: readOnly,
             db_type: dbType,
             host,
@@ -346,7 +346,7 @@ function ConnectionDialog({ open, connection, onClose, onSave }: ConnectionDialo
           const createRequest: CreateFilesystemConnectionRequest = {
             type: "filesystem",
             name,
-            description: description || undefined,
+            description,
             read_only: readOnly,
             path,
             path_type: pathType,
