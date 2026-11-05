@@ -154,16 +154,6 @@ export function ConnectionsTab() {
         description="Database and filesystem connections the Hub can provide to servers. Database credentials are encrypted at rest."
         actions={
           <>
-            <Select
-              aria-label="Filter by type"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value as Filter)}
-              className="w-40"
-            >
-              <option value="all">All types</option>
-              <option value="database">Databases</option>
-              <option value="filesystem">Filesystems</option>
-            </Select>
             <Button
               icon={<CheckCircle2 className="h-4 w-4" />}
               onClick={() => void handleCheckAll()}
@@ -183,6 +173,19 @@ export function ConnectionsTab() {
           </>
         }
       />
+
+      <div className="mb-4">
+        <Select
+          aria-label="Filter by type"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value as Filter)}
+          className="w-full sm:w-48"
+        >
+          <option value="all">All types</option>
+          <option value="database">Databases</option>
+          <option value="filesystem">Filesystems</option>
+        </Select>
+      </div>
 
       {connections.isPending ? (
         <LoadingState label="Loading connections..." />
