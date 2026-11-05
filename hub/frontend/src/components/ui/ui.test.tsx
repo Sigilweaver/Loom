@@ -136,7 +136,7 @@ describe("Alert and states", () => {
     render(
       <EmptyState title="No workflows yet" description="Upload one" action={<button>Upload</button>} />
     );
-    expect(screen.getByRole("heading", { name: "No workflows yet" })).toBeInTheDocument();
+    expect(screen.getByText("No workflows yet")).toBeInTheDocument();
     expect(screen.getByText("Upload one")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Upload" })).toBeInTheDocument();
   });

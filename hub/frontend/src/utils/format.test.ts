@@ -11,8 +11,8 @@ import {
 const NOW = new Date("2026-09-28T12:00:00Z");
 
 describe("formatRelativeTime", () => {
-  it("collapses very recent times to 'Just now'", () => {
-    expect(formatRelativeTime("2026-09-28T11:59:30Z", NOW)).toBe("Just now");
+  it("collapses very recent times to 'just now'", () => {
+    expect(formatRelativeTime("2026-09-28T11:59:30Z", NOW)).toBe("just now");
   });
 
   it("uses minutes, hours and days", () => {
