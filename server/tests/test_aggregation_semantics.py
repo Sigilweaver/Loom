@@ -139,3 +139,17 @@ class TestUnionTypes:
         b = pl.LazyFrame({"x": ["a"]})
         out = UnionOperation(mode="ByName").execute([a, b]).collect()
         assert out["x"].to_list() == [None, "a"]
+
+
+@pytest.mark.parametrize("mode", ["ByName", "ByPosition"])
+async def test_union_output_schema_matches_execution(mode: str):
+    from app.domain.tools.expr_builder import UnionOperation
+    from app.domain.tools.implementations.union import UnionTool
+
+    a = pl.LazyFrame({"x": pl.Series([1], dtype=pl.Int32), "y": ["a"]})
+    b = pl.LazyFrame({"x": [2.5], "y": ["b"]})
+    actual = schema_from_polars(UnionOperation(mode=mode).execute([a, b]))
+    predicted = await UnionTool().get_output_schema(
+        {"mode": mode}, {"input": [schema_from_polars(a), schema_from_polars(b)]}
+    )
+    assert [c.dtype for c in predicted["output"].columns] == [c.dtype for c in actual.columns]
