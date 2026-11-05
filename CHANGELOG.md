@@ -34,6 +34,7 @@ and documentation checked against the code.
 - **Hub frontend rebuilt** - API client split by resource with a typed `ApiError` (#91); shared component layer with per-theme status colors (#90); all pages rebuilt with loading, empty and error states
 - **Server execution** - One execution path for run, schema, metadata and profile, so all honour the timeout, execution mode and locking (#83); the domain layer no longer depends on the API layer (#82)
 - **Studio canvas** - Edges are derived at render time and follow the theme instead of being stored with the workflow (#88); Preview All keeps the UI responsive on large workflows (#67); only the wire that closes a loop is flagged invalid
+- **Hub connection testing** - The Test buttons and the health poller share one tester with a URL builder for every supported database type (PostgreSQL, MySQL, SQL Server, SQLite); the Test endpoints no longer block the Hub while a database answers (#63)
 - **Clearer errors** - Server tool input/output errors say what to do; file-access failures return 400/403/404 instead of 500
 - **Documentation** - Roadmap rewritten around the path to v1.0; sidebar rebuilt as a reading path; deployment guide, configuration references, security model, Studio, connections, Hub and AI pages corrected against the code; developer guide updated for Bun and uv
 - **README and SECURITY.md** - Security support now covers the latest 0.x release until v1.0
