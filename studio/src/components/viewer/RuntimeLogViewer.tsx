@@ -88,7 +88,7 @@ const RuntimeLogViewer = () => {
               className={`px-2 py-1 text-xs rounded transition-colors ${
                 filter === option.value
                   ? "bg-theme-surface-panel text-theme-text-primary border border-theme-border-primary"
-                  : "bg-transparent text-theme-text-secondary border border-transparent"
+                  : "bg-transparent text-theme-text-secondary border border-transparent hover:bg-theme-surface-panel/50"
               }`}
             >
               {option.label}
@@ -128,10 +128,10 @@ const RuntimeLogViewer = () => {
             {[...filteredLogs].reverse().map((log) => (
               <div
                 key={log.id}
-                className="flex items-center gap-2 px-2 py-1 rounded"
+                className="flex items-center gap-2 px-2 py-1 rounded hover:bg-theme-surface-panel/50"
               >
                 {/* Timestamp */}
-                <span className="text-theme-text-muted shrink-0">
+                <span className="text-theme-text-muted w-18 shrink-0">
                   {formatTime(log.timestamp)}
                 </span>
 

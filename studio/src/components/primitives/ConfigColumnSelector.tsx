@@ -442,7 +442,7 @@ export function ConfigColumnSelector<T extends ColumnSelectorItem>({
                     !itemIsSelected && "hover:bg-theme-surface-hover",
                     // Focus ring
                     itemIsFocused &&
-                      "ring-2 ring-inset",
+                      "ring-2 ring-inset ring-theme-interactive-accent/50",
                     // Disabled state
                     disabled && "pointer-events-none"
                   )}
