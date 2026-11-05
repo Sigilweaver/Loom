@@ -201,6 +201,27 @@ class SessionManager:
 
         return rows_affected(result)
 
+    async def invalidate_other_user_sessions(
+        self, user_id: uuid.UUID, keep_session_id: uuid.UUID
+    ) -> int:
+        """Invalidate every session of a user except one (the caller's own).
+
+        Args:
+            user_id: The user whose other sessions should end.
+            keep_session_id: The session to keep.
+
+        Returns:
+            Number of sessions invalidated.
+        """
+        result = await self.db.execute(
+            delete(Session)
+            .where(Session.user_id == user_id)
+            .where(Session.id != keep_session_id)
+        )
+        await self.db.commit()
+
+        return rows_affected(result)
+
     async def get_user_sessions(self, user_id: uuid.UUID) -> list[Session]:
         """Get all active sessions for a user.
 

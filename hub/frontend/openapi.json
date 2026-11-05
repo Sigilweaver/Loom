@@ -1851,6 +1851,16 @@
             "title": "Password",
             "type": "string"
           },
+          "session_mode": {
+            "default": "bearer",
+            "description": "How the new session is delivered. 'bearer' (API clients such as Studio) returns the token in access_token. 'cookie' (the Hub web app) sets an HttpOnly session cookie plus a CSRF cookie and returns no token.",
+            "enum": [
+              "bearer",
+              "cookie"
+            ],
+            "title": "Session Mode",
+            "type": "string"
+          },
           "username": {
             "title": "Username",
             "type": "string"
@@ -1864,11 +1874,18 @@
         "type": "object"
       },
       "LoginResponse": {
-        "description": "Login response with access token",
+        "description": "Login response.\n\n``access_token`` is set only for ``session_mode='bearer'``. It is null for\ncookie sessions and when an administrator registers another user (no\nsession is created for them).",
         "properties": {
           "access_token": {
-            "title": "Access Token",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Token"
           },
           "token_type": {
             "default": "bearer",
@@ -1880,7 +1897,6 @@
           }
         },
         "required": [
-          "access_token",
           "user"
         ],
         "title": "LoginResponse",
@@ -1916,6 +1932,16 @@
             "maxLength": 128,
             "minLength": 8,
             "title": "Password",
+            "type": "string"
+          },
+          "session_mode": {
+            "default": "bearer",
+            "description": "How the new session is delivered. 'bearer' (API clients such as Studio) returns the token in access_token. 'cookie' (the Hub web app) sets an HttpOnly session cookie plus a CSRF cookie and returns no token.",
+            "enum": [
+              "bearer",
+              "cookie"
+            ],
+            "title": "Session Mode",
             "type": "string"
           },
           "username": {
@@ -3910,7 +3936,7 @@
     },
     "/api/v1/auth/logout": {
       "post": {
-        "description": "Logout current user by invalidating session",
+        "description": "Logout current user by invalidating session.\n\nAccepts a bearer token or the web app's session cookie. A cookie session\nmust present its CSRF token, and its cookies are cleared.",
         "operationId": "logout_api_v1_auth_logout_post",
         "responses": {
           "200": {

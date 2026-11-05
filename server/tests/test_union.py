@@ -123,7 +123,7 @@ class TestUnionCodeGeneration:
 
         assert output_vars["output"] == "df_union_abc"
         assert len(lines) == 1
-        assert 'pl.concat([df_filter_t, df_filter_f], how="diagonal")' in lines[0]
+        assert 'pl.concat([df_filter_t, df_filter_f], how="diagonal_relaxed")' in lines[0]
 
     def test_code_gen_multiple_inputs_by_position(self):
         tool = UnionTool()

@@ -1,15 +1,18 @@
 /**
  * Authentication state management using Zustand
  *
+ * The session token never reaches JavaScript: the Hub keeps it in an HttpOnly
+ * cookie (see hub/backend/app/domain/auth/cookies.py). This store only holds
+ * who is signed in, and finds that out on page load by asking the Hub
+ * (`restoreSession`). Nothing here is persisted to browser storage.
+ *
  * Handles:
  * - User session state
- * - Token storage (localStorage)
- * - Login/logout actions
- * - Auth state persistence across refreshes
+ * - Login/logout state changes
+ * - Restoring the session after a page refresh
  */
 
 import { create } from "zustand";
-import { persist, createJSONStorage } from "zustand/middleware";
 
 export type UserRole = "owner" | "admin" | "auditor" | "user";
 
@@ -21,91 +24,99 @@ export interface AuthUser {
 
 interface AuthState {
   // State
-  token: string | null;
   user: AuthUser | null;
   isAuthenticated: boolean;
+  /** True until the first session check has finished. */
   isLoading: boolean;
-  /** True after the Hub rejected our token (expired or revoked session). */
+  /** True after the Hub rejected our session (expired or revoked). */
   sessionExpired: boolean;
 
   // Actions
-  setAuth: (token: string, user: AuthUser) => void;
+  setAuth: (user: AuthUser) => void;
   clearAuth: () => void;
   setLoading: (loading: boolean) => void;
 }
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set) => ({
-      // Initial state
-      token: null,
+/**
+ * Where earlier versions persisted the session token in localStorage. Removed
+ * on load so an old token does not linger in script-readable storage.
+ */
+export const LEGACY_AUTH_STORAGE_KEY = "sigilweaver-loom-hub-auth";
+
+export const useAuthStore = create<AuthState>()((set) => ({
+  // Initial state
+  user: null,
+  isAuthenticated: false,
+  isLoading: true, // Start loading until the session check finishes
+  sessionExpired: false,
+
+  // Actions
+  setAuth: (user) =>
+    set({
+      user,
+      isAuthenticated: true,
+      isLoading: false,
+      sessionExpired: false,
+    }),
+
+  clearAuth: () =>
+    set({
       user: null,
       isAuthenticated: false,
-      isLoading: true, // Start loading until we check stored auth
+      isLoading: false,
       sessionExpired: false,
-
-      // Actions
-      setAuth: (token, user) =>
-        set({
-          token,
-          user,
-          isAuthenticated: true,
-          isLoading: false,
-          sessionExpired: false,
-        }),
-
-      clearAuth: () =>
-        set({
-          token: null,
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-          sessionExpired: false,
-        }),
-
-      setLoading: (loading) => set({ isLoading: loading }),
     }),
-    {
-      name: "sigilweaver-loom-hub-auth",
-      storage: createJSONStorage(() => localStorage),
-      // Only persist token and user, not loading state
-      partialize: (state) => ({
-        token: state.token,
-        user: state.user,
-        isAuthenticated: state.isAuthenticated,
-      }),
-      onRehydrateStorage: () => (state) => {
-        // After rehydration, set loading to false
-        if (state) {
-          state.setLoading(false);
-        }
-      },
-    }
-  )
-);
+
+  setLoading: (loading) => set({ isLoading: loading }),
+}));
 
 /**
- * Get the auth token for API requests
- */
-export function getAuthToken(): string | null {
-  return useAuthStore.getState().token;
-}
-
-/**
- * End the local session because the Hub rejected our token (HTTP 401).
+ * End the local session because the Hub rejected it (HTTP 401).
  * Route guards react to the store change and send the user to the login page,
  * which explains why. Does nothing when nobody is signed in.
  */
 export function expireSession(): void {
-  const { token } = useAuthStore.getState();
-  if (!token) return;
+  if (!useAuthStore.getState().isAuthenticated) return;
   useAuthStore.setState({
-    token: null,
     user: null,
     isAuthenticated: false,
     isLoading: false,
     sessionExpired: true,
   });
+}
+
+/** Remove the session token that older versions stored in localStorage. */
+export function removeLegacyAuthStorage(): void {
+  try {
+    localStorage.removeItem(LEGACY_AUTH_STORAGE_KEY);
+  } catch (error) {
+    // Storage can be blocked (privacy mode, sandboxed frames). Nothing was
+    // stored there in that case, so there is nothing to clean up.
+    console.warn("Could not clear the legacy Hub session from localStorage", error);
+  }
+}
+
+/**
+ * Ask the Hub who is signed in (the session cookie is sent automatically),
+ * and update the store. `fetchMe` resolves to the user, or rejects; a 401
+ * means "not signed in". Other failures also leave the user signed out, since
+ * nothing can be shown without a session, and are reported to the console.
+ */
+export async function restoreSession(
+  fetchMe: () => Promise<{ id: string; username: string; role: string }>
+): Promise<void> {
+  try {
+    const me = await fetchMe();
+    useAuthStore
+      .getState()
+      .setAuth({ id: me.id, username: me.username, role: me.role as UserRole });
+  } catch (error) {
+    const status = (error as { status?: number } | null)?.status;
+    if (status !== 401) {
+      console.error("Could not restore the Hub session", error);
+    }
+    useAuthStore.getState().clearAuth();
+  }
 }
 
 /** Lower number = more privileged. Role hierarchy: owner > admin > auditor > user. */

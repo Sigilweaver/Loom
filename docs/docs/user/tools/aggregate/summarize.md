@@ -32,8 +32,8 @@ The Aggregate tool shows a table of all available columns. For each column, sele
 | **Median** | Calculate median value | Numeric only |
 | **Min** | Find minimum value | Any type |
 | **Max** | Find maximum value | Any type |
-| **Count** | Count all values (including nulls) | Any type |
-| **Count Distinct** | Count unique values | Any type |
+| **Count** | Count non-null values | Any type |
+| **Count Distinct** | Count unique non-null values | Any type |
 | **First** | Get first value in group | Any type |
 | **Last** | Get last value in group | Any type |
 | **Std Dev** | Calculate standard deviation | Numeric only |
@@ -149,12 +149,13 @@ Use Group By without any aggregations to get unique values:
 
 | Aggregation | Behavior |
 |-------------|----------|
-| Concat | Joins values with `, ` separator |
+| Concat | Joins non-null values with `, ` separator |
 | First/Last | First or last value in the group |
 
 ## Notes
 
-- **Empty groups**: Groups with all null values produce null aggregation results
-- **Row order**: Group By output order is not guaranteed (sort if needed)
+- **All-null groups**: Sum, Count and Count Distinct return 0 and Concat returns an empty string; the other aggregations return null
+- **Null group keys**: Rows whose Group By value is null form their own group
+- **Row order**: Groups appear in the order their first row appears in the input
 - **Multiple aggregations per column**: You can apply multiple aggregations to the same column
 - **Null handling**: Most aggregations skip null values

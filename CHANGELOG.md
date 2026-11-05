@@ -21,6 +21,7 @@ and documentation checked against the code.
 
 ### Changed
 
+- **Hub connections page** - Rebuilt on the shared components: accessible add/edit dialog with per-field errors, confirmation before delete, toasts, and loading, empty and error states (#90)
 - **Hub API types** - Hub frontend wire types are generated from the backend OpenAPI schema (`bun run gen:api`) and CI fails when they drift (#76)
 - **Studio polish** - Notifications appear at the bottom right instead of covering the header buttons; the empty canvas shows a starting hint; favorite tools appear once, under Favorites
 - **Desktop app is Tauri only** - Studio ships as a Tauri app in Full (bundled Server sidecar) and Client variants: AppImage, deb and rpm for Linux, an NSIS installer for Windows, and a DMG each for Apple silicon and Intel Macs. The app identifier is `com.sigilweaver.loom-studio`. Settings and saved connections are stored by the new shell, so enter them again on first launch. The Linux snap and Windows portable exe are no longer built
@@ -28,18 +29,30 @@ and documentation checked against the code.
 - **Desktop security** - Links and `window.open` to other sites open in the system browser and are never loaded in the app window; webview permission requests (camera, microphone, location) are denied; the window title is `Sigilweaver Loom - Version X`; developer tools are available in debug builds only
 - **Desktop CI** - `ci.yml` checks, lints (clippy, rustfmt) and tests the Tauri crate on Linux, Windows and macOS, builds the Full installers on every platform and launches each one (`scripts/smoke_desktop.py`) when desktop code changes. `release.yml` builds Full and Client installers from the same workflow
 - **Studio dependencies** - Tailwind CSS 4 (via the Vite plugin, with a compatibility layer for v3 defaults), React 19, Zustand 5, Vitest 5, jsdom 30 and the in-range updates for the AI SDK, Radix, Tauri API, Monaco and tooling
+- **Hub backend dependencies** - pydantic 2.14.2 (fixes GHSA-qpmf-fgh3-ff25 and GHSA-3r8g-cqwr-jr29), pydantic-settings 2.16.2, pytest 9.2, ruff 0.17.3, mypy 2.4.1; the Hub image builds on Python 3.11.18
 - **Releases are drafts** - `release.yml` creates a draft for human review, marks tags containing `-` as pre-releases, requires a semver tag on `main` with a passing CI run, and pre-releases never update the stable download index or the `latest` Docker tag
 - **Hub server selection** - Automatic selection picks the least-loaded online server (ties broken at random) instead of always the first (#71)
 - **Hub-triggered runs** - Manual runs execute as the triggering user and scheduled runs as the schedule creator
 - **Hub frontend rebuilt** - API client split by resource with a typed `ApiError` (#91); shared component layer with per-theme status colors (#90); all pages rebuilt with loading, empty and error states
 - **Server execution** - One execution path for run, schema, metadata and profile, so all honour the timeout, execution mode and locking (#83); the domain layer no longer depends on the API layer (#82)
 - **Studio canvas** - Edges are derived at render time and follow the theme instead of being stored with the workflow (#88); Preview All keeps the UI responsive on large workflows (#67); only the wire that closes a loop is flagged invalid
+- **Hub connection testing** - The Test buttons and the health poller share one tester with a URL builder for every supported database type (PostgreSQL, MySQL, SQL Server, SQLite); the Test endpoints no longer block the Hub while a database answers (#63)
+- **Server Python version** - The Server supports Python 3.13 only: `requires-python`, mypy and ruff now target 3.13, matching `server/.python-version`, the Docker image and CI (#117)
+- **Server type checks** - The remaining unexplained `type: ignore` comments are replaced by typed code (join `how`, pivot aggregate, profiler statistics); a failed profiling metric and an audit log that cannot be deleted or summarised are now logged instead of passing silently (#115)
+- **Unknown tool config keys** - A config key the engine does not read is no longer dropped silently: Sort rejects it, Studio editor state (`_`-prefixed keys, Filter condition-builder keys, Summarize `actions`) is ignored, Input and Output forward it to the reader or writer, and any other unknown key is reported in the run response's `config_warnings` and the server log (#77)
 - **Clearer errors** - Server tool input/output errors say what to do; file-access failures return 400/403/404 instead of 500
 - **Documentation** - Roadmap rewritten around the path to v1.0; sidebar rebuilt as a reading path; deployment guide, configuration references, security model, Studio, connections, Hub and AI pages corrected against the code; developer guide updated for Bun and uv
 - **README and SECURITY.md** - Security support now covers the latest 0.x release until v1.0
 
 ### Fixed
 
+- **Hub sign-in message** - A wrong username or password now says so instead of reporting an expired session
+- **Summarize on Polars 2** - The Concat aggregation failed on Polars 2 (`str.concat` was removed) and now uses `str.join`; Count Distinct no longer counts null as a value, matching Count and the documentation; output schemas are derived from Polars, so previews show the real result dtype (an Int8 Sum is Int64, a Float32 Mean stays Float32, a Date Mean is a Datetime)
+- **Union type mismatches** - Union widens numeric columns (Int32 + Int64, Int64 + Float64) but stops with an error naming the column for any other mismatch, instead of silently converting, for example, numbers to strings; the schema preview shows the widened type
+- **Sample First Percent** - 0% now returns no rows instead of one
+- **Join `leftSuffix`** - Removed from the Join config: it was accepted but never applied (left columns always keep their names)
+- **Schema dtypes** - Polars Enum columns are reported as Categorical and Array columns as List instead of Utf8
+- **Server operations (silent wrong data)** - Filter now sends rows whose predicate is null to the False output instead of dropping them from both outputs; Sort is stable; Summarize group-by, distinct and Join keep input row order; Union by name/position widens mismatched numeric types instead of failing; generated Python quotes column names safely
 - **Duplicate scheduled runs** - PostgreSQL row locks coordinate persisted cron occurrences across competing dispatchers. The next occurrence advances atomically with execution insertion; replacement processes see overdue work and schedule edits without local re-registration. Missed intervals are coalesced into one attempt. Hub deployment remains single replica because live updates still use an in-memory broker (#69)
 - **Hub executions stuck as running** - Runs left queued or running when the Hub stopped are now marked failed ("interrupted") by a sweep at startup and every 60s, driven by a new per-run heartbeat. Cancellation and runner transitions re-read the execution under a row lock, so finished runs cannot be cancelled and terminal runs cannot be restarted. New setting `EXECUTION_STALE_SECONDS` (default 120); requires migration `009_execution_heartbeat` (#68, partial)
 - **Hub audit log verification** - `/api/v1/audit/verify` reported every event as tampered because the hash was computed before the event id and timestamp were set. The hash now also covers auth method, client IP, user agent and server id, and concurrent writers are serialized with an advisory lock. Requires migration `008_audit_hash_version`; events written before the upgrade are reported as legacy (unverifiable), not tampered (#110)
@@ -65,6 +78,10 @@ and documentation checked against the code.
 
 ### Security
 
+- **Hub web sessions in HttpOnly cookies** - The Hub web app no longer keeps its session token in `localStorage`. `POST /auth/login` (and first-run `POST /auth/register`) accept `session_mode: "cookie"`, which sets an `HttpOnly`, `Secure`, `SameSite=Strict` session cookie and returns no token; the app restores the session from `/auth/me` on load and removes the old `localStorage` entry. State-changing cookie requests must send an `X-CSRF-Token` header bound to the session, or get 403. Bearer tokens for Studio and scripts are unchanged. New setting `SESSION_COOKIE_SECURE` (default `true`) (#118)
+- **Hub sessions end on password changes** - Changing your password signs out your other sessions, and an administrator's password reset signs out all of that user's sessions
+- **Hub registration by an administrator** - `POST /auth/register` called by an admin creates the user without also creating a session for them; `access_token` is null
+- **Hub login timing** - A login for an unknown username takes as long as one with a wrong password, so response times do not reveal which usernames exist
 - **Hub capability authorization** - Browse requests enforce connection grants before resolving credentials, matching execute and preview. In-memory tokens expire at the deadline, matching PostgreSQL. HTTP regressions cover issuer failure, server identity, expiry, replay, grant revocation and credential scope (#110)
 - **Bounded data profiling** - Column statistics collect at most `MAX_PROFILE_ROWS` plus a truncation check, share the upstream request deadline and label sampled results. Sampled pivot counts are lower bounds; skipped Output placeholders use the same results lock (#83)
 - **JavaScript dependency audits** - Patch brace-expansion, Axios, Joi and Undici advisories; upgrade Electron to 41.10.6 for popup sandbox, protocol CORS and webview worker restrictions

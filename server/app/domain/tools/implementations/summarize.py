@@ -12,6 +12,7 @@ from app.domain.tools.registry import register_tool
 from app.domain.tools.sockets import CommonSockets
 from app.utils.columns import resolve_column_name
 from app.utils.errors import ToolError
+from app.utils.type_mapping import MODEL_TO_POLARS, polars_dtype_to_model
 
 # Valid aggregation operations with their Polars methods
 AGGREGATION_OPERATIONS = {
@@ -29,7 +30,7 @@ AGGREGATION_OPERATIONS = {
     # String aggregations
     "First": "first",
     "Last": "last",
-    "Concat": "str.concat",
+    "Concat": "str.join",
 }
 
 
@@ -55,16 +56,30 @@ class SummarizeToolConfig(BaseModel):
 
 
 def get_result_dtype(operation: str, input_dtype: PolarsDataType) -> PolarsDataType:
-    """Determine the output dtype for an aggregation operation"""
+    """Determine the output dtype for an aggregation operation.
+
+    Asks Polars: the aggregation runs on an empty frame of the input dtype and
+    the result schema is read back, so schema previews follow Polars' own
+    promotion rules (Int8 sums widen to Int64, Float32 means stay Float32, Date
+    means become Datetime) instead of a hand-kept table that drifts.
+    """
+    polars_dtype = MODEL_TO_POLARS.get(input_dtype)
+    if polars_dtype is not None:
+        expr = AggregationExpr(column="value", operation=operation).to_polars()
+        try:
+            schema = pl.LazyFrame(schema={"value": polars_dtype}).select(expr).collect_schema()
+        except pl.exceptions.PolarsError:
+            # The operation does not apply to this dtype (e.g. Sum of a String
+            # column); execution raises the real error, the preview keeps the
+            # input dtype meanwhile.
+            return input_dtype
+        return polars_dtype_to_model(schema.dtypes()[0])
+    # List / Struct inputs: only dtype-independent results are known.
     if operation in {"Count", "CountDistinct"}:
         return PolarsDataType.UINT32
-    elif operation in {"Mean", "Std", "Var", "Median"}:
-        return PolarsDataType.FLOAT64
-    elif operation == "Concat":
+    if operation == "Concat":
         return PolarsDataType.STRING
-    else:
-        # Sum, Min, Max, First, Last preserve type
-        return input_dtype
+    return input_dtype
 
 
 @register_tool("Summarize")
@@ -81,6 +96,8 @@ class SummarizeTool(BaseTool):
         - outputName: str - name for the output column (optional)
     - includeNulls: bool - whether to include null values in grouping (default: False)
     """
+
+    editor_state_keys = frozenset({"actions"})
 
     def is_blocking(self, config: dict[str, Any] | None = None) -> bool:
         """Summarize is blocking - must see all rows per group."""

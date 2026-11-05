@@ -1,12 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { ApiError, buildQuery, isApiError, request, requestBlob, requestVoid } from "./http";
 
-const { expireSession, getAuthToken } = vi.hoisted(() => ({
+const { expireSession } = vi.hoisted(() => ({
   expireSession: vi.fn(),
-  getAuthToken: vi.fn<() => string | null>(() => "test-token"),
 }));
 
-vi.mock("@state/authStore", () => ({ expireSession, getAuthToken }));
+vi.mock("@state/authStore", () => ({ expireSession }));
+
+function setCookie(value: string) {
+  document.cookie = value;
+}
+
+function clearCsrfCookie() {
+  document.cookie = "loom_hub_csrf=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+}
 
 function respond(body: unknown, status = 200, statusText = "") {
   return {
@@ -40,15 +47,16 @@ function stubFetch(response: ReturnType<typeof respond>) {
 describe("http layer", () => {
   beforeEach(() => {
     expireSession.mockClear();
-    getAuthToken.mockReturnValue("test-token");
+    setCookie("loom_hub_csrf=csrf-abc; path=/");
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    clearCsrfCookie();
   });
 
   describe("request", () => {
-    it("sends the bearer token and parses the JSON response", async () => {
+    it("relies on the session cookie and parses the JSON response", async () => {
       const fetchMock = stubFetch(respond({ ok: true }));
 
       const result = await request<{ ok: boolean }>("/things");
@@ -57,18 +65,33 @@ describe("http layer", () => {
       const [url, init] = fetchMock.mock.calls[0]!;
       expect(url).toBe("/api/v1/things");
       expect(init.method).toBe("GET");
-      expect(init.headers.Authorization).toBe("Bearer test-token");
+      expect(init.credentials).toBe("same-origin");
+      expect(init.headers.Authorization).toBeUndefined();
+      // Safe methods need no CSRF token.
+      expect(init.headers["X-CSRF-Token"]).toBeUndefined();
     });
 
-    it("omits the token when signed out or when auth is disabled", async () => {
+    it("sends the CSRF token on state-changing requests", async () => {
       const fetchMock = stubFetch(respond({}));
 
-      await request("/public", { auth: false });
-      getAuthToken.mockReturnValue(null);
-      await request("/things");
+      for (const method of ["POST", "PUT", "PATCH", "DELETE"] as const) {
+        await request("/things", { method, json: {} });
+      }
 
-      expect(fetchMock.mock.calls[0]![1].headers.Authorization).toBeUndefined();
-      expect(fetchMock.mock.calls[1]![1].headers.Authorization).toBeUndefined();
+      for (const call of fetchMock.mock.calls) {
+        expect(call[1].headers["X-CSRF-Token"]).toBe("csrf-abc");
+      }
+    });
+
+    it("omits the CSRF token when signed out or when auth is disabled", async () => {
+      const fetchMock = stubFetch(respond({}));
+
+      await request("/public", { method: "POST", auth: false });
+      clearCsrfCookie();
+      await request("/things", { method: "POST" });
+
+      expect(fetchMock.mock.calls[0]![1].headers["X-CSRF-Token"]).toBeUndefined();
+      expect(fetchMock.mock.calls[1]![1].headers["X-CSRF-Token"]).toBeUndefined();
     });
 
     it("serialises JSON bodies with a content type", async () => {

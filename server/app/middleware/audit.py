@@ -15,6 +15,8 @@ from starlette.types import ASGIApp
 
 from app.config import settings
 
+_module_logger = logging.getLogger(__name__)
+
 
 def setup_audit_logger() -> logging.Logger:
     """Configure a dedicated audit logger that writes to file."""
@@ -62,16 +64,21 @@ def cleanup_old_audit_logs() -> int:
     deleted = 0
 
     for log_file in audit_path.glob("audit_*.log"):
+        # Parse date from filename (audit_YYYY-MM-DD.log); other names are not ours.
+        date_str = log_file.stem.replace("audit_", "")
         try:
-            # Parse date from filename (audit_YYYY-MM-DD.log)
-            date_str = log_file.stem.replace("audit_", "")
             file_date = datetime.strptime(date_str, "%Y-%m-%d")
-
-            if file_date < cutoff:
-                log_file.unlink()
-                deleted += 1
-        except (ValueError, OSError):
+        except ValueError:
             continue
+        if file_date >= cutoff:
+            continue
+        try:
+            log_file.unlink()
+        except OSError as e:
+            # Retention is a promise; a file that cannot be removed is reported.
+            _module_logger.warning("Could not delete expired audit log %s: %s", log_file, e)
+            continue
+        deleted += 1
 
     return deleted
 
@@ -224,5 +231,8 @@ class AuditMiddleware(BaseHTTPMiddleware):
             # Non-JSON body
             return f"[{len(body)} bytes]"
 
-        except Exception:
+        except Exception as e:
+            # The summary is best-effort and must not fail the request, but a
+            # missing summary is logged rather than silently blank.
+            _module_logger.warning("Could not summarise request body for audit: %s", e)
             return None

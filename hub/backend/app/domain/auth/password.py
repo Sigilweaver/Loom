@@ -7,6 +7,8 @@ resists GPU/ASIC attacks.
 This module provides simple hash/verify functions for use in auth flows.
 """
 
+import secrets
+
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError
 
@@ -60,6 +62,22 @@ def verify_password(password: str, password_hash: str) -> bool:
         return True
     except (VerificationError, InvalidHashError):
         return False
+
+
+_dummy_hash: str | None = None
+
+
+def burn_password_check(password: str) -> None:
+    """Spend the time of a real password check, for a user that does not exist.
+
+    Login calls this when the username is unknown so that the response takes
+    as long as a wrong password would, and response times do not reveal which
+    usernames exist. The hash is made on first use with the current hasher.
+    """
+    global _dummy_hash
+    if _dummy_hash is None:
+        _dummy_hash = _hasher.hash(secrets.token_urlsafe(16))
+    verify_password(password, _dummy_hash)
 
 
 def needs_rehash(password_hash: str) -> bool:

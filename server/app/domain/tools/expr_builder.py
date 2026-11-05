@@ -7,18 +7,39 @@ and use them for both runtime execution and Python code generation.
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, get_args
 
 import polars as pl
 
+from app.utils.errors import ToolError
+
+_JOIN_HOW: dict[str, Literal["inner", "left", "right", "full"]] = {
+    "inner": "inner",
+    "left": "left",
+    "right": "right",
+    "outer": "full",  # "outer" is spelled "full" in Polars 2
+}
+
 
 def _polars_join_how(join_type: str) -> Literal["inner", "left", "right", "full"]:
-    """Map a tool join type to a Polars `how` ("outer" is spelled "full" in Polars 2)."""
-    if join_type == "outer":
-        return "full"
-    if join_type in ("inner", "left", "right"):
-        return join_type  # type: ignore[return-value]
-    return "inner"
+    """Map a tool join type to a Polars `how`."""
+    return _JOIN_HOW.get(join_type, "inner")
+
+
+PivotAgg = Literal["first", "last", "sum", "mean", "median", "min", "max", "len"]
+_PIVOT_AGGS: dict[str, PivotAgg] = {name: name for name in get_args(PivotAgg)}
+
+
+def _q(name: str) -> str:
+    """Render a column name as a double-quoted Python string literal."""
+    escaped = (
+        name.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    )
+    return f'"{escaped}"'
 
 
 class ExprNode(ABC):
@@ -183,8 +204,10 @@ class FilterOperation:
 
         from app.utils.expression import parse_polars_expression
 
+        # A null predicate is "not true": those rows belong on the False output.
+        # Without fill_null they would match neither branch and silently vanish.
         filter_expr = parse_polars_expression(self.expr_str)
-        return lf.filter(filter_expr), lf.filter(~filter_expr)
+        return lf.filter(filter_expr), lf.filter(~filter_expr.fill_null(False))
 
     def to_code(self, input_var: str, var_t: str, var_f: str) -> list[str]:
         """Generate Python code for filter operation."""
@@ -199,7 +222,7 @@ class FilterOperation:
         expr_code = normalize_expression(self.expr_str)
         return [
             f"{var_t} = {input_var}.filter({expr_code})",
-            f"{var_f} = {input_var}.filter(~({expr_code}))",
+            f"{var_f} = {input_var}.filter(~({expr_code}).fill_null(False))",
         ]
 
 
@@ -256,14 +279,19 @@ class SortOperation:
         descending = [c.descending for c in self.columns]
         nulls_last = [c.nulls_last for c in self.columns]
 
-        return lf.sort(by=by_columns, descending=descending, nulls_last=nulls_last)
+        return lf.sort(
+            by=by_columns,
+            descending=descending,
+            nulls_last=nulls_last,
+            maintain_order=True,
+        )
 
     def to_code(self, input_var: str, output_var: str) -> list[str]:
         """Generate Python code for sort operation."""
         if not self.columns:
             return [f"{output_var} = {input_var}"]
 
-        by_str = ", ".join(f'"{c.column}"' for c in self.columns)
+        by_str = ", ".join(_q(c.column) for c in self.columns)
         desc_str = ", ".join("True" if c.descending else "False" for c in self.columns)
         nulls_str = ", ".join("True" if c.nulls_last else "False" for c in self.columns)
 
@@ -272,12 +300,21 @@ class SortOperation:
             f"    by=[{by_str}],",
             f"    descending=[{desc_str}],",
             f"    nulls_last=[{nulls_str}],",
+            "    maintain_order=True,",
             ")",
         ]
 
 
 # Sample modes that require blocking (full data scan)
 BLOCKING_SAMPLE_MODES = {"LastN", "Random", "RandomPercent", "FirstPercent"}
+
+
+def _first_percent_rows(total: int, percent: float) -> int:
+    """Rows kept by FirstPercent: floor of the share, at least one row when percent > 0."""
+    n_rows = int(total * percent / 100.0)
+    if percent > 0 and total:
+        return max(n_rows, 1)
+    return n_rows
 
 
 @dataclass
@@ -319,8 +356,7 @@ class SampleOperation:
         elif self.mode == "FirstPercent":
             # First N% requires knowing row count - blocking
             df = lf.collect()
-            n_rows = max(1, int(len(df) * self.percent / 100.0))
-            return df.head(n_rows).lazy()
+            return df.head(_first_percent_rows(len(df), self.percent)).lazy()
 
         else:
             # Unknown mode - pass through
@@ -355,11 +391,14 @@ class SampleOperation:
             ]
 
         elif self.mode == "FirstPercent":
-            return [
+            lines = [
                 f"_df_temp = {input_var}.collect()",
-                f"_n_rows = max(1, int(len(_df_temp) * {self.percent} / 100.0))",
-                f"{output_var} = _df_temp.head(_n_rows).lazy()",
+                f"_n_rows = int(len(_df_temp) * {self.percent} / 100.0)",
             ]
+            if self.percent > 0:
+                lines.append("_n_rows = max(_n_rows, 1) if len(_df_temp) else 0")
+            lines.append(f"{output_var} = _df_temp.head(_n_rows).lazy()")
+            return lines
 
         else:
             return [f"{output_var} = {input_var}"]
@@ -375,10 +414,10 @@ AGGREGATION_METHODS = {
     "Std": ("std", ".std()"),
     "Var": ("var", ".var()"),
     "Count": ("count", ".count()"),
-    "CountDistinct": ("n_unique", ".n_unique()"),
+    "CountDistinct": ("n_unique", ".drop_nulls().n_unique()"),
     "First": ("first", ".first()"),
     "Last": ("last", ".last()"),
-    "Concat": ("str.concat", '.str.concat(", ")'),
+    "Concat": ("str.join", '.str.join(", ")'),
 }
 
 
@@ -411,13 +450,15 @@ class AggregationExpr:
         elif self.operation == "Count":
             expr = expr.count()
         elif self.operation == "CountDistinct":
-            expr = expr.n_unique()
+            # Nulls are not a value: Count skips them, so CountDistinct does too.
+            expr = expr.drop_nulls().n_unique()
         elif self.operation == "First":
             expr = expr.first()
         elif self.operation == "Last":
             expr = expr.last()
         elif self.operation == "Concat":
-            expr = expr.str.concat(delimiter=", ")
+            # Polars 2 removed str.concat; str.join skips nulls the same way.
+            expr = expr.str.join(", ")
         else:
             expr = expr.sum()  # fallback
 
@@ -457,13 +498,13 @@ class SummarizeOperation:
         if not self.aggregations:
             if not self.group_by_columns:
                 return lf
-            return lf.select(self.group_by_columns).unique()
+            return lf.select(self.group_by_columns).unique(maintain_order=True)
 
         # Build aggregation expressions
         agg_exprs = [agg.to_polars() for agg in self.aggregations]
 
         if self.group_by_columns:
-            return lf.group_by(self.group_by_columns).agg(agg_exprs)
+            return lf.group_by(self.group_by_columns, maintain_order=True).agg(agg_exprs)
         else:
             return lf.select(agg_exprs)
 
@@ -473,15 +514,18 @@ class SummarizeOperation:
         if not self.aggregations:
             if not self.group_by_columns:
                 return [f"{output_var} = {input_var}"]
-            cols_str = ", ".join(f'"{c}"' for c in self.group_by_columns)
-            return [f"{output_var} = {input_var}.select([{cols_str}]).unique()"]
+            cols_str = ", ".join(_q(c) for c in self.group_by_columns)
+            return [f"{output_var} = {input_var}.select([{cols_str}]).unique(maintain_order=True)"]
 
         # Build aggregation code
         agg_code_parts = [agg.to_code() for agg in self.aggregations]
 
         if self.group_by_columns:
-            group_by_str = ", ".join(f'"{c}"' for c in self.group_by_columns)
-            lines = [f"{output_var} = {input_var}.group_by([{group_by_str}]).agg(["]
+            group_by_str = ", ".join(_q(c) for c in self.group_by_columns)
+            lines = [
+                f"{output_var} = {input_var}.group_by("
+                f"[{group_by_str}], maintain_order=True).agg(["
+            ]
         else:
             lines = [f"{output_var} = {input_var}.select(["]
 
@@ -539,6 +583,7 @@ class JoinOperation:
             how=how,
             suffix=self.right_suffix,
             coalesce=True,
+            maintain_order="left" if how != "right" else "right",
         )
 
         # Anti-join for unmatched rows
@@ -551,6 +596,7 @@ class JoinOperation:
                 left_on=self.left_keys,
                 right_on=self.right_keys,
                 how="anti",
+                maintain_order="left",
             )
 
         # For right/outer joins, unmatched_right is empty (already included in matched)
@@ -562,6 +608,7 @@ class JoinOperation:
                 left_on=self.right_keys,
                 right_on=self.left_keys,
                 how="anti",
+                maintain_order="left",
             )
 
         return unmatched_left, matched, unmatched_right
@@ -613,7 +660,8 @@ class JoinOperation:
                 f"right_on={right_keys_str}, "
                 f'how="{how}", '
                 f'suffix="{self.right_suffix}", '
-                f"coalesce=True)"
+                f"coalesce=True, "
+                f'maintain_order="{"right" if how == "right" else "left"}")'
             )
 
             if how in ("left", "full"):
@@ -628,7 +676,7 @@ class JoinOperation:
                     f"{right_var}, "
                     f"left_on={left_keys_str}, "
                     f"right_on={right_keys_str}, "
-                    f'how="anti")'
+                    f'how="anti", maintain_order="left")'
                 )
 
             if how in ("right", "full"):
@@ -643,10 +691,39 @@ class JoinOperation:
                     f"{left_var}, "
                     f"left_on={right_keys_str}, "
                     f"right_on={left_keys_str}, "
-                    f'how="anti")'
+                    f'how="anti", maintain_order="left")'
                 )
 
         return lines
+
+
+def _check_union_dtypes(frames: list[pl.LazyFrame]) -> None:
+    """Reject column type mismatches that the relaxed concat would hide.
+
+    The relaxed concat modes widen to a common supertype. That is wanted for
+    numbers (Int32 + Int64, Int64 + Float64) but would silently turn an Int64
+    column unioned with a String column into strings. Numeric widening,
+    widening within one dtype family (Datetime units) and all-null columns are
+    allowed; any other mismatch raises.
+    """
+    seen: dict[str, pl.DataType] = {}
+    for frame in frames:
+        for name, dtype in frame.collect_schema().items():
+            first = seen.setdefault(name, dtype)
+            if dtype == first or dtype == pl.Null or first == pl.Null:
+                if first == pl.Null:
+                    seen[name] = dtype
+                continue
+            if first.is_numeric() and dtype.is_numeric():
+                continue
+            if type(first) is type(dtype):
+                # Same family with different parameters (Datetime units or
+                # time zones, Decimal precision): the supertype keeps the values.
+                continue
+            raise ToolError(
+                f"Union column '{name}' has incompatible types {first} and {dtype}. "
+                "Cast the columns to one type first, for example with a Select tool."
+            )
 
 
 @dataclass
@@ -664,7 +741,8 @@ class UnionOperation:
             return frames[0]
 
         if self.mode == "ByName":
-            return pl.concat(frames, how="diagonal")
+            _check_union_dtypes(frames)
+            return pl.concat(frames, how="diagonal_relaxed")
         elif self.mode == "ByPosition":
             first_frame = frames[0]
             target_cols = first_frame.collect_schema().names()
@@ -676,9 +754,11 @@ class UnionOperation:
                 rename_map = {old: new for old, new in zip(current_cols, target_cols)}
                 processed_frames.append(current_frame.rename(rename_map))
 
-            return pl.concat(processed_frames, how="vertical")
+            _check_union_dtypes(processed_frames)
+            return pl.concat(processed_frames, how="vertical_relaxed")
         else:
-            return pl.concat(frames, how="vertical")
+            _check_union_dtypes(frames)
+            return pl.concat(frames, how="vertical_relaxed")
 
     def to_code(self, input_vars: list[str], output_var: str) -> list[str]:
         """Generate Python code for union operation."""
@@ -691,7 +771,7 @@ class UnionOperation:
         frames_str = ", ".join(input_vars)
 
         if self.mode == "ByName":
-            return [f'{output_var} = pl.concat([{frames_str}], how="diagonal")']
+            return [f'{output_var} = pl.concat([{frames_str}], how="diagonal_relaxed")']
         elif self.mode == "ByPosition":
             return [
                 "# Union by position - align columns to first frame",
@@ -702,10 +782,10 @@ class UnionOperation:
                 "    _curr_cols = _frame.collect_schema().names()",
                 "    _rename_map = {old: new for old, new in zip(_curr_cols, _first_cols)}",
                 "    _processed.append(_frame.rename(_rename_map))",
-                f'{output_var} = pl.concat(_processed, how="vertical")',
+                f'{output_var} = pl.concat(_processed, how="vertical_relaxed")',
             ]
         else:
-            return [f'{output_var} = pl.concat([{frames_str}], how="vertical")']
+            return [f'{output_var} = pl.concat([{frames_str}], how="vertical_relaxed")']
 
 
 @dataclass
@@ -751,7 +831,7 @@ class UniqueOperation:
 
         # Build key expression code
         if self.columns:
-            cols_str = ", ".join(f'"{c}"' for c in self.columns)
+            cols_str = ", ".join(_q(c) for c in self.columns)
             key_code = f"pl.struct([{cols_str}])"
         else:
             lines.append(f"_all_cols = {input_var}.collect_schema().names()")
@@ -791,12 +871,12 @@ class UnpivotOperation:
 
     def to_code(self, input_var: str, output_var: str) -> list[str]:
         """Generate Python code for unpivot operation."""
-        on_str = ", ".join(f'"{c}"' for c in self.on)
+        on_str = ", ".join(_q(c) for c in self.on)
         var_escaped = self.variable_name.replace("\\", "\\\\").replace('"', '\\"')
         val_escaped = self.value_name.replace("\\", "\\\\").replace('"', '\\"')
 
         if self.index:
-            index_str = ", ".join(f'"{c}"' for c in self.index)
+            index_str = ", ".join(_q(c) for c in self.index)
             return [
                 f"{output_var} = {input_var}.unpivot(",
                 f"    on=[{on_str}],",
@@ -828,11 +908,9 @@ class PivotOperation:
     values: str  # Column whose values fill the new columns
     aggregate_function: str = "first"  # How to aggregate duplicate values
 
-    # Valid aggregation functions for pivot
-    VALID_AGGREGATIONS: set[str] = field(
-        default_factory=lambda: {"first", "last", "sum", "mean", "median", "min", "max", "len"},
-        repr=False,
-    )
+    def _agg(self) -> PivotAgg:
+        """Polars aggregate for this pivot (unknown names were rejected by validation)."""
+        return _PIVOT_AGGS.get(self.aggregate_function, "first")
 
     def execute(self, lf: pl.LazyFrame) -> pl.LazyFrame:
         """Execute pivot operation.
@@ -841,18 +919,14 @@ class PivotOperation:
         performs the pivot on the DataFrame, then returns as a LazyFrame.
         The PivotTool is_blocking() returns True to ensure proper execution.
         """
-        agg_func: str = (
-            self.aggregate_function
-            if self.aggregate_function in self.VALID_AGGREGATIONS
-            else "first"
-        )
+        agg_func = self._agg()
         # Pivot requires eager execution - collect, pivot, return lazy
         df = lf.collect()
         result = df.pivot(
             on=self.on,
             index=self.index if self.index else None,
             values=self.values,
-            aggregate_function=agg_func,  # type: ignore[arg-type]
+            aggregate_function=agg_func,
         )
         return result.lazy()
 
@@ -864,16 +938,12 @@ class PivotOperation:
         """
         on_escaped = self.on.replace("\\", "\\\\").replace('"', '\\"')
         values_escaped = self.values.replace("\\", "\\\\").replace('"', '\\"')
-        agg_func = (
-            self.aggregate_function
-            if self.aggregate_function in self.VALID_AGGREGATIONS
-            else "first"
-        )
+        agg_func = self._agg()
 
         lines = [f"_df_pivot_temp = {input_var}.collect()"]
 
         if self.index:
-            index_str = ", ".join(f'"{c}"' for c in self.index)
+            index_str = ", ".join(_q(c) for c in self.index)
             lines.extend(
                 [
                     f"{output_var} = _df_pivot_temp.pivot(",

@@ -27,7 +27,7 @@ Take a subset of rows from your data using various sampling strategies.
 | **Every N** | Take every Nth row (with optional offset) | No (streaming) |
 | **Random** | Take N random rows | Yes |
 | **Random Percent** | Take a random percentage of rows | Yes |
-| **First Percent** | Take the first N% of rows | Yes |
+| **First Percent** | Take the first N% of rows, rounded down (at least one row when N is above 0; none when N is 0) | Yes |
 
 :::warning Blocking Modes
 **Last N**, **Random**, **Random Percent**, and **First Percent** modes require reading all data before producing output. This means the entire dataset must fit in memory.

@@ -58,6 +58,10 @@ Credentials travel from Hub to the Server. They do not go to Studio or to the us
 | Password theft from the database      | Passwords are hashed with Argon2id.                                                  |
 | Credential theft from the database    | Connection credentials are encrypted with Fernet. The key is not in the database.    |
 | Leaked tokens in the audit trail      | The audit log stores identities and counts, not credentials.                         |
+| Script in the Hub web app reading the session | The web app's session is an `HttpOnly`, `Secure`, `SameSite=Strict` cookie; script never sees the token, and nothing is kept in browser storage. |
+| Cross-site requests riding the session cookie | Every state-changing request authenticated by the cookie must carry an `X-CSRF-Token` header bound to that session (an HMAC under `SESSION_SECRET`). Bearer-token clients such as Studio do not use the cookie. |
+| A session that outlives a password change | Changing your password signs out your other sessions; an administrator's password reset signs out all of that user's sessions. |
+| Finding valid usernames by timing     | A login for an unknown username spends the same password-hashing time as a wrong password. |
 
 Tokens are held in memory by default, so a Hub restart invalidates every token that is in flight. That fails safe. See [Hub Open Beta](./hub-beta.md).
 

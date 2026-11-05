@@ -310,7 +310,8 @@ class TestSampleToolCodeGeneration:
         config = {"mode": "FirstPercent", "percent": 30.0}
         lines, output_vars = sample_tool.to_python_code("sample-7", config, {"input": "df_input"})
 
-        assert len(lines) == 3
+        assert len(lines) == 4
         assert ".collect()" in lines[0]
         assert "30.0 / 100.0" in lines[1]
-        assert ".head(" in lines[2]
+        assert "max(_n_rows, 1)" in lines[2]
+        assert ".head(" in lines[3]

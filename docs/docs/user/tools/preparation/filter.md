@@ -127,6 +127,10 @@ pl.col("value").is_not_null()
 pl.col("value").is_null()
 ```
 
+A condition that evaluates to null (for example `pl.col("age") > 30` on a row
+where `age` is null) is not true, so that row goes to the **F** output. Every
+input row appears in exactly one of the two outputs.
+
 #### Negation
 
 ```python

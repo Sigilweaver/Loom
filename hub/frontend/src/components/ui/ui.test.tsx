@@ -20,7 +20,7 @@ import {
   useToast,
 } from "./index";
 
-vi.mock("@state/authStore", () => ({ getAuthToken: () => null, expireSession: () => {} }));
+vi.mock("@state/authStore", () => ({ expireSession: () => {} }));
 
 describe("Button", () => {
   it("fires onClick and defaults to type=button", async () => {

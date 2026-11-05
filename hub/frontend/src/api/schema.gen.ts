@@ -114,7 +114,10 @@ export interface paths {
         put?: never;
         /**
          * Logout
-         * @description Logout current user by invalidating session
+         * @description Logout current user by invalidating session.
+         *
+         *     Accepts a bearer token or the web app's session cookie. A cookie session
+         *     must present its CSRF token, and its cookies are cleared.
          */
         post: operations["logout_api_v1_auth_logout_post"];
         delete?: never;
@@ -2391,16 +2394,27 @@ export interface components {
         LoginRequest: {
             /** Password */
             password: string;
+            /**
+             * Session Mode
+             * @description How the new session is delivered. 'bearer' (API clients such as Studio) returns the token in access_token. 'cookie' (the Hub web app) sets an HttpOnly session cookie plus a CSRF cookie and returns no token.
+             * @default bearer
+             * @enum {string}
+             */
+            session_mode: "bearer" | "cookie";
             /** Username */
             username: string;
         };
         /**
          * LoginResponse
-         * @description Login response with access token
+         * @description Login response.
+         *
+         *     ``access_token`` is set only for ``session_mode='bearer'``. It is null for
+         *     cookie sessions and when an administrator registers another user (no
+         *     session is created for them).
          */
         LoginResponse: {
             /** Access Token */
-            access_token: string;
+            access_token?: string | null;
             /**
              * Token Type
              * @default bearer
@@ -2429,6 +2443,13 @@ export interface components {
         RegisterRequest: {
             /** Password */
             password: string;
+            /**
+             * Session Mode
+             * @description How the new session is delivered. 'bearer' (API clients such as Studio) returns the token in access_token. 'cookie' (the Hub web app) sets an HttpOnly session cookie plus a CSRF cookie and returns no token.
+             * @default bearer
+             * @enum {string}
+             */
+            session_mode: "bearer" | "cookie";
             /** Username */
             username: string;
         };

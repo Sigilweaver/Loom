@@ -12,7 +12,7 @@ from app.db.database import get_db
 from app.db.models import Group, User, UserGroup
 from app.domain.auth.password import hash_password
 from app.domain.auth.roles import Role, can_assign_role, can_manage_role
-from app.domain.auth.sessions import SessionInfo
+from app.domain.auth.sessions import SessionInfo, SessionManager
 
 router = APIRouter(prefix="/users")
 
@@ -251,6 +251,11 @@ async def update_user(
 
     await db.commit()
     await db.refresh(target_user)
+
+    if request.password is not None:
+        # A password reset ends every session of that account, so a reset
+        # locks out whoever was using the old password.
+        await SessionManager(db).invalidate_all_user_sessions(target_user.id)
 
     return _user_to_response(target_user)
 

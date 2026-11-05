@@ -69,8 +69,8 @@ export function parseSseFrame(
 /**
  * Subscribe to the live execution event stream (Server-Sent Events).
  *
- * Uses fetch + ReadableStream rather than the browser EventSource API because
- * the Hub authenticates via a Bearer header, which EventSource cannot set.
+ * Uses fetch + ReadableStream rather than the browser EventSource API so that
+ * a rejected session (HTTP 401) can be told apart from a dropped connection.
  * Returns a function that cancels the subscription.
  */
 export function streamExecutions(handlers: ExecutionStreamHandlers): () => void {
@@ -80,6 +80,7 @@ export function streamExecutions(handlers: ExecutionStreamHandlers): () => void 
     try {
       const response = await fetch(`${API_BASE}/executions/stream`, {
         headers: authHeaders(),
+        credentials: "same-origin",
         signal: controller.signal,
       });
       if (!response.ok || !response.body) {

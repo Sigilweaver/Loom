@@ -4,7 +4,8 @@ import { BrowserRouter } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import "./index.css";
-import { useAuthStore } from "./state/authStore";
+import { removeLegacyAuthStorage, restoreSession, useAuthStore } from "./state/authStore";
+import { getMe } from "./api/auth";
 import { useThemeStore, applyTheme } from "./state/themeStore";
 import { FeedbackProvider } from "@components/ui";
 import { createQueryClient } from "./queryClient";
@@ -18,8 +19,12 @@ const queryClient = createQueryClient();
 
 // Never show one user's cached data to the next person to sign in on this tab.
 useAuthStore.subscribe((state, previous) => {
-  if (previous.token && !state.token) queryClient.clear();
+  if (previous.isAuthenticated && !state.isAuthenticated) queryClient.clear();
 });
+
+// The session lives in an HttpOnly cookie; ask the Hub who is signed in.
+removeLegacyAuthStorage();
+void restoreSession(getMe);
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

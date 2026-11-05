@@ -3,7 +3,6 @@ import { listAuditEvents, verifyAuditChain } from "./audit";
 
 vi.mock("@state/authStore", () => ({
     expireSession: () => {},
-    getAuthToken: () => "test-token",
 }));
 
 function mockFetchOnce(body: unknown, ok = true, status = 200) {
@@ -35,9 +34,9 @@ describe("audit API client", () => {
             expect(fetchMock).toHaveBeenCalledTimes(1);
             const [url, init] = fetchMock.mock.calls[0]!;
             expect(url).toBe("/api/v1/audit/events");
-            expect((init.headers as Record<string, string>).Authorization).toBe(
-                "Bearer test-token"
-            );
+            // The session is an HttpOnly cookie: no token in script.
+            expect((init.headers as Record<string, string>).Authorization).toBeUndefined();
+            expect(init.credentials).toBe("same-origin");
             expect(result).toEqual({ events: [], total: 0 });
         });
 
