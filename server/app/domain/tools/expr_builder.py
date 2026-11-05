@@ -11,6 +11,8 @@ from typing import Any, Literal
 
 import polars as pl
 
+from app.utils.errors import ToolError
+
 
 def _polars_join_how(join_type: str) -> Literal["inner", "left", "right", "full"]:
     """Map a tool join type to a Polars `how` ("outer" is spelled "full" in Polars 2)."""
@@ -688,6 +690,30 @@ class JoinOperation:
         return lines
 
 
+def _check_union_dtypes(frames: list[pl.LazyFrame]) -> None:
+    """Reject column type mismatches that the relaxed concat would hide.
+
+    The relaxed concat modes widen to a common supertype. That is wanted for
+    numbers (Int32 + Int64, Int64 + Float64) but would silently turn an Int64
+    column unioned with a String column into strings. Only numeric widening
+    (and all-null columns) is allowed; any other mismatch raises.
+    """
+    seen: dict[str, pl.DataType] = {}
+    for frame in frames:
+        for name, dtype in frame.collect_schema().items():
+            first = seen.setdefault(name, dtype)
+            if dtype == first or dtype == pl.Null or first == pl.Null:
+                if first == pl.Null:
+                    seen[name] = dtype
+                continue
+            if first.is_numeric() and dtype.is_numeric():
+                continue
+            raise ToolError(
+                f"Union column '{name}' has incompatible types {first} and {dtype}. "
+                "Cast the columns to one type first, for example with a Select tool."
+            )
+
+
 @dataclass
 class UnionOperation:
     """Represents a union operation."""
@@ -703,6 +729,7 @@ class UnionOperation:
             return frames[0]
 
         if self.mode == "ByName":
+            _check_union_dtypes(frames)
             return pl.concat(frames, how="diagonal_relaxed")
         elif self.mode == "ByPosition":
             first_frame = frames[0]
@@ -715,8 +742,10 @@ class UnionOperation:
                 rename_map = {old: new for old, new in zip(current_cols, target_cols)}
                 processed_frames.append(current_frame.rename(rename_map))
 
+            _check_union_dtypes(processed_frames)
             return pl.concat(processed_frames, how="vertical_relaxed")
         else:
+            _check_union_dtypes(frames)
             return pl.concat(frames, how="vertical_relaxed")
 
     def to_code(self, input_vars: list[str], output_var: str) -> list[str]:

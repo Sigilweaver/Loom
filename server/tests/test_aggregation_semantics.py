@@ -106,3 +106,36 @@ class TestFirstPercent:
         empty = pl.LazyFrame({"i": []}, schema={"i": pl.Int64})
         out = SampleOperation(mode="FirstPercent", percent=50.0).execute(empty).collect()
         assert out.height == 0
+
+
+class TestUnionTypes:
+    """Union widens numbers but refuses to coerce other mismatches silently."""
+
+    @pytest.mark.parametrize("mode", ["ByName", "ByPosition"])
+    def test_numeric_columns_widen(self, mode: str):
+        from app.domain.tools.expr_builder import UnionOperation
+
+        a = pl.LazyFrame({"x": pl.Series([1], dtype=pl.Int32)})
+        b = pl.LazyFrame({"x": [2.5]})
+        out = UnionOperation(mode=mode).execute([a, b]).collect()
+        assert out.schema["x"] == pl.Float64
+        assert out["x"].to_list() == [1.0, 2.5]
+
+    @pytest.mark.parametrize("mode", ["ByName", "ByPosition"])
+    @pytest.mark.parametrize("other", [["a"], [True]])
+    def test_non_numeric_mismatch_raises(self, mode: str, other: list[object]):
+        from app.domain.tools.expr_builder import UnionOperation
+        from app.utils.errors import ToolError
+
+        a = pl.LazyFrame({"x": [1]})
+        b = pl.LazyFrame({"x": other})
+        with pytest.raises(ToolError, match="incompatible types"):
+            UnionOperation(mode=mode).execute([a, b])
+
+    def test_all_null_column_takes_the_other_type(self):
+        from app.domain.tools.expr_builder import UnionOperation
+
+        a = pl.LazyFrame({"x": [None]})
+        b = pl.LazyFrame({"x": ["a"]})
+        out = UnionOperation(mode="ByName").execute([a, b]).collect()
+        assert out["x"].to_list() == [None, "a"]
