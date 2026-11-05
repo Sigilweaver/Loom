@@ -246,7 +246,7 @@ export const useUIStore = create<UIState>()((set, get) => ({
     const effectiveDuration = duration ?? DEFAULT_NOTIFICATION_DURATION[type];
     // Routine info must not replace an error the user has not dismissed.
     // Success still does: it reports the outcome of a newer action.
-    const current = useUIStore.getState().notification;
+    const current = get().notification;
     if (current.isVisible && current.type === "error" && type === "info") {
       return;
     }
