@@ -6,10 +6,11 @@ import {
   type Connection,
   type Node,
 } from "@xyflow/react";
-import { forwardRef, useCallback } from "react";
+import { forwardRef, useCallback, useEffect } from "react";
 import WorkflowNode from "@components/workflow/WorkflowNode";
 import AutoConnectPreviewEdge from "./AutoConnectPreviewEdge";
 import { CanvasControls } from "./CanvasControls";
+import { CLEAR_CANVAS_SELECTION_EVENT } from "./events";
 import { EmptyCanvasHint } from "./EmptyCanvasHint";
 import { CanvasDragAndDropLayer } from "./CanvasDragAndDropLayer";
 import { CanvasMenus } from "./CanvasMenus";
@@ -258,6 +259,18 @@ export const CanvasShell = forwardRef<CanvasRef>((_props, ref) => {
     doPaste,
     moveSelectedNodes,
   });
+
+  // Clear the selection when another part of the UI asks (for example the
+  // close button in the tool configuration header).
+  useEffect(() => {
+    const clearSelection = () => {
+      setNodes((ns) => ns.map((n) => (n.selected ? { ...n, selected: false } : n)));
+      setEdges((es) => es.map((e) => (e.selected ? { ...e, selected: false } : e)));
+      handleToolSelect(null);
+    };
+    document.addEventListener(CLEAR_CANVAS_SELECTION_EVENT, clearSelection);
+    return () => document.removeEventListener(CLEAR_CANVAS_SELECTION_EVENT, clearSelection);
+  }, [setNodes, setEdges, handleToolSelect]);
 
   // === Visual styling hooks ===
   const getNodeColor = useNodeColor(tools);

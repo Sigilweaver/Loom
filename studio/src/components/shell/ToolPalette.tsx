@@ -120,20 +120,25 @@ export default function ToolPalette() {
     touchStartRef.current = null;
   }, []);
 
-  // Keyboard and double-click path: add the tool at the middle of the visible
-  // canvas, nudging each one so repeated adds do not stack exactly.
+  // Keyboard and double-click path: add the tool near the middle of the
+  // visible canvas.
   const keyboardAddCountRef = useRef(0);
   const addToolToCanvas = useCallback((toolType: string) => {
     const target = document.querySelector<HTMLElement>("[data-canvas-drop-target]");
     if (!target) return;
     const rect = target.getBoundingClientRect();
-    const step = (keyboardAddCountRef.current++ % 6) * 24;
+    // Fill a 4 x 3 grid around the center (160px apart, a bit more than a
+    // tool node) so consecutive adds sit side by side instead of on top of
+    // each other.
+    const n = keyboardAddCountRef.current++ % 12;
+    const dx = ((n % 4) - 1.5) * 160;
+    const dy = (Math.floor(n / 4) - 1) * 160;
     document.dispatchEvent(
       new CustomEvent(TOOL_TOUCH_DROP_EVENT, {
         detail: {
           toolType,
-          clientX: rect.left + rect.width / 2 + step,
-          clientY: rect.top + rect.height / 2 + step,
+          clientX: rect.left + rect.width / 2 + dx,
+          clientY: rect.top + rect.height / 2 + dy,
         } as ToolTouchDropDetail,
       })
     );
