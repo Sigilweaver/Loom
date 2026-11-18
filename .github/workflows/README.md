@@ -283,7 +283,7 @@ studio) and `cargo audit` (studio/tauri).
 **Policy**: fix advisories with an in-range lockfile bump or an `overrides`
 entry in `package.json`. An `--ignore` is only acceptable when no fixed
 release exists, and it needs a comment in the workflow saying why and when it
-can be removed. No advisory IDs are currently ignored. JavaScript audit jobs enforce high/critical severity;
+can be removed. Ignored: GHSA-fc5q-39xc-vjpf (picomatch, no fixed release) in both bun audit jobs. JavaScript audit jobs enforce high/critical severity;
 run `bun audit` locally to inspect findings at every severity.
 
 ---
