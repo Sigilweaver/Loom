@@ -10,7 +10,7 @@
     "source-map-js": "^1.2.2"
   },
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.22.2"
   },
   "scripts": {
     "dev": "vite",
