@@ -37,6 +37,7 @@ and documentation checked against the code.
 - **Studio dependencies** - Tailwind CSS 4 (via the Vite plugin, with a compatibility layer for v3 defaults), TanStack Table 9 (data preview grid), React 19, Zustand 5, Vitest 5, jsdom 30 and the in-range updates for the AI SDK, Radix, Tauri API, Monaco and tooling
 - **Node toolchain** - Node 22 is pinned in `.nvmrc` and `.node-version`, the `engines` minimum is 20.19 in every JavaScript package, and CI installs the pinned version before running the Studio and Hub frontend suites (#70)
 - **Hub backend dependencies** - pydantic 2.14.2 (fixes GHSA-qpmf-fgh3-ff25 and GHSA-3r8g-cqwr-jr29), pydantic-settings 2.16.2, pytest 9.2, ruff 0.17.3, mypy 2.4.1; the Hub image builds on Python 3.11.18
+- **Hub backend Polars 2** - The Hub backend requires Polars 2, matching the Server
 - **Releases are drafts** - `release.yml` creates a draft for human review, marks tags containing `-` as pre-releases, requires a semver tag on `main` with a passing CI run, and pre-releases never update the stable download index or the `latest` Docker tag
 - **Hub server selection** - Automatic selection picks the least-loaded online server (ties broken at random) instead of always the first (#71)
 - **Hub-triggered runs** - Manual runs execute as the triggering user and scheduled runs as the schedule creator
