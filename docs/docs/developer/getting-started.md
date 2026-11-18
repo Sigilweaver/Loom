@@ -14,7 +14,7 @@ Set up a development environment and run Studio, Server and Hub from source.
 | [uv](https://docs.astral.sh/uv/) | current | Python environments for Server and Hub |
 | Python | 3.13 for the Server (pinned in `server/.python-version` and `requires-python`; uv fetches it for you). The Hub backend supports 3.11 or newer | Server and Hub backend |
 | [Bun](https://bun.sh) | current | JavaScript dependencies and scripts for Studio, Hub frontend and docs |
-| Node.js | 22 (pinned in `.nvmrc` and `.node-version`; 20.19 is the minimum) | Toolchain that Vite, Electron and Docusaurus run on |
+| Node.js | 22 (pinned in `.nvmrc` and `.node-version`; Studio and the Hub frontend need ^22.22.2, ^24.15.0 or >=26) | Toolchain that Vite, Electron and Docusaurus run on |
 | Git | any | |
 | Docker | optional | PostgreSQL for Hub development, and the Docker stacks |
 
