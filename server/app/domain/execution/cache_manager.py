@@ -141,7 +141,7 @@ class CacheManager:
             tool_impl = ToolRegistry.get(tool.type)
             return tool_impl.should_cache(tool.config)
         except Exception as e:
-            logger.debug(f"should_cache check failed for tool {tool.id}: {e}")
+            logger.warning(f"should_cache check failed for tool {tool.id}: {e}")
             return False
 
     def check_cache(
