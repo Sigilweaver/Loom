@@ -24,7 +24,7 @@
     "postcss-selector-parser": "^6.1.5"
   },
   "engines": {
-    "node": ">=22.22.2"
+    "node": "^22.22.2 || ^24.15.0 || >=26"
   },
   "scripts": {
     "dev": "vite",
