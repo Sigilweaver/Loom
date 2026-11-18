@@ -55,6 +55,7 @@ and documentation checked against the code.
 
 ### Fixed
 
+- **opentelemetry-api CVE-2026-126360** - Server and Hub backend lockfiles move opentelemetry-api from 1.45.1 to 1.45.2 so the pip-audit checks pass
 - **Editing client connections** - Leaving the username blank when editing a connection keeps the stored username instead of clearing it
 - **AI assistant with OpenAI-compatible servers** - Requests use Chat Completions instead of the Responses API most such servers lack, and the upstream URL travels in a header instead of a query string that the request path was appended to. When a turn fails, the chat shows the provider's error instead of "No output generated". The Basic-mode Filter and Calculate assists use the provider's structured JSON output (cloud providers) and report malformed replies clearly. A failed model list in Settings says why it fell back to the suggested models
 - **AI assistant audit and cancel** - Audit results are shown as audit verdicts again (the chat looked for a different prefix than the auditor wrote); an audit that fails, has no model, or returns no verdict is reported as a warning instead of being dropped or shown as a pass. Cancelling while the assistant waits on a question ends the turn instead of leaving it waiting
