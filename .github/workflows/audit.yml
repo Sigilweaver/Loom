@@ -70,9 +70,14 @@ jobs:
       - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - run: cd hub/frontend && bun install --frozen-lockfile
-      # No advisories are ignored here. Keep it that way: fix with an in-range
+      # Other than the picomatch entry below, ignore nothing: fix with an in-range
       # lockfile bump or an "overrides" entry in package.json instead.
-      - run: cd hub/frontend && bun audit --audit-level=high
+      # GHSA-fc5q-39xc-vjpf (picomatch <= 4.0.7, ReDoS via extglobs, high) is
+      # ignored: no fixed version exists as of Nov 18 2026 (upstream fix pending
+      # in micromatch/picomatch#194). It is reached only through dev/build
+      # tooling (vite, vitest, typescript-eslint, tinyglobby).
+      # Remove when picomatch > 4.0.7 ships; then run `bun update picomatch`.
+      - run: cd hub/frontend && bun audit --audit-level=high --ignore=GHSA-fc5q-39xc-vjpf
 
   bun-audit-studio:
     name: bun audit (studio)
@@ -85,7 +90,12 @@ jobs:
       # studio/package.json (nanoid, fast-uri, js-yaml, @xmldom/xmldom) and by
       # keeping the minimatch/brace-expansion entries in bun.lock on patched
       # releases. Do not add an --ignore for anything that has a fix.
-      - run: cd studio && bun audit --audit-level=high
+      # GHSA-fc5q-39xc-vjpf (picomatch <= 4.0.7, ReDoS via extglobs, high) is
+      # ignored: no fixed version exists as of Nov 18 2026 (upstream fix pending
+      # in micromatch/picomatch#194). It is reached only through dev/build
+      # tooling (vite, vitest, typescript-eslint, tinyglobby).
+      # Remove when picomatch > 4.0.7 ships; then run `bun update picomatch`.
+      - run: cd studio && bun audit --audit-level=high --ignore=GHSA-fc5q-39xc-vjpf
 
   cargo-audit:
     name: cargo audit (studio/tauri)
