@@ -25,6 +25,7 @@ and documentation checked against the code.
 
 ### Changed
 
+- **Node engines** - Studio and the Hub frontend now require Node ^22.22.2, ^24.15.0 or >=26, matching the range jsdom 31 supports
 - **AI assistant providers** - Default and suggested models are updated (Anthropic claude-sonnet-5-5, claude-opus-5-5, claude-haiku-5-5; OpenAI gpt-6.1-sol, gpt-6-astra, gpt-6-luna; Google gemini-3.8-flash, gemini-3.1-pro-preview, gemini-3.5-flash-lite). Provider errors are classified from the HTTP status, with distinct messages for a missing model and an oversized conversation. On Anthropic, only the stable instructions carry the prompt-cache breakpoint, so editing the canvas no longer invalidates the cache
 - **Hub connections page** - Rebuilt on the shared components: accessible add/edit dialog with per-field errors, confirmation before delete, toasts, and loading, empty and error states (#90)
 - **Hub API types** - Hub frontend wire types are generated from the backend OpenAPI schema (`bun run gen:api`) and CI fails when they drift (#76)
@@ -37,6 +38,7 @@ and documentation checked against the code.
 - **Studio dependencies** - Tailwind CSS 4 (via the Vite plugin, with a compatibility layer for v3 defaults), TanStack Table 9 (data preview grid), React 19, Zustand 5, Vitest 5, jsdom 30 and the in-range updates for the AI SDK, Radix, Tauri API, Monaco and tooling
 - **Node toolchain** - Node 22 is pinned in `.nvmrc` and `.node-version`, the `engines` minimum is 20.19 in every JavaScript package, and CI installs the pinned version before running the Studio and Hub frontend suites (#70)
 - **Hub backend dependencies** - pydantic 2.14.2 (fixes GHSA-qpmf-fgh3-ff25 and GHSA-3r8g-cqwr-jr29), pydantic-settings 2.16.2, pytest 9.2, ruff 0.17.3, mypy 2.4.1; the Hub image builds on Python 3.11.18
+- **Hub backend Polars 2** - The Hub backend requires Polars 2, matching the Server
 - **Releases are drafts** - `release.yml` creates a draft for human review, marks tags containing `-` as pre-releases, requires a semver tag on `main` with a passing CI run, and pre-releases never update the stable download index or the `latest` Docker tag
 - **Hub server selection** - Automatic selection picks the least-loaded online server (ties broken at random) instead of always the first (#71)
 - **Hub-triggered runs** - Manual runs execute as the triggering user and scheduled runs as the schedule creator
@@ -55,6 +57,8 @@ and documentation checked against the code.
 
 ### Fixed
 
+- **opentelemetry-api CVE-2026-126360** - Server and Hub backend lockfiles move opentelemetry-api from 1.45.1 to 1.45.2 so the pip-audit checks pass
+- **Silent exceptions (Server)** - Best-effort fallbacks no longer discard the error: the database schema query and cache directory cleanup log it at debug level, and a failing cache eligibility check logs a warning; the tool config schema route returns 404 only for an unknown tool type (a registry bug now surfaces as a 500)
 - **Editing client connections** - Leaving the username blank when editing a connection keeps the stored username instead of clearing it
 - **AI assistant with OpenAI-compatible servers** - Requests use Chat Completions instead of the Responses API most such servers lack, and the upstream URL travels in a header instead of a query string that the request path was appended to. When a turn fails, the chat shows the provider's error instead of "No output generated". The Basic-mode Filter and Calculate assists use the provider's structured JSON output (cloud providers) and report malformed replies clearly. A failed model list in Settings says why it fell back to the suggested models
 - **AI assistant audit and cancel** - Audit results are shown as audit verdicts again (the chat looked for a different prefix than the auditor wrote); an audit that fails, has no model, or returns no verdict is reported as a warning instead of being dropped or shown as a pass. Cancelling while the assistant waits on a question ends the turn instead of leaving it waiting

@@ -43,6 +43,19 @@ def test_unknown_tool_returns_404(client: TestClient) -> None:
     assert resp.status_code == 404
 
 
+def test_registry_bug_surfaces_as_500(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Only ToolError maps to 404; an unexpected registry failure is a 500."""
+
+    def boom(*_args: object, **_kwargs: object) -> None:
+        raise RuntimeError("registry bug")
+
+    monkeypatch.setattr(ToolRegistry, "get", boom)
+    resp = TestClient(fastapi_app, raise_server_exceptions=False).get(
+        "/api/workflow/tool/Filter/schema"
+    )
+    assert resp.status_code == 500
+
+
 @pytest.mark.parametrize(
     "tool_type,expected_property",
     [
