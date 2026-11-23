@@ -129,6 +129,7 @@ and documentation checked against the code.
 - **AI proxy** - SSRF guard blocks CGNAT (100.64.0.0/10) and IPv6-embedded internal addresses
 - **SQLite path bypass** - `sqlite://` database URIs are now validated against the server file allowlist and Hub file grants in the loader, datasource routes, connection test and connection create/update; previously a workflow could read any SQLite file on the server, and missing paths were created
 - **File access** - Permission is checked before existence; with `RESTRICT_FILE_ACCESS=true` the server allowlist is enforced at execution as well as browsing
+- **url RUSTSEC-2026-0592** - The Studio Tauri lockfile moves url from 2.5.8 to 2.5.9 (stack overflow in `Url::origin()` on nested `blob:` URLs) so `cargo audit (studio/tauri)` passes
 - **Dependencies** - anyio 4.15.1 (CVE-2026-63374, CVE-2026-64847, CVE-2026-63349), polars 1.43.2, js-yaml and other Studio advisories, quick-xml 0.41; the Audit workflow is green
 - **Lint policy** - Zero-ignore ruff and mypy policy is now enforced for the Hub backend (#142)
 
